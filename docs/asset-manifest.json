@@ -1,0 +1,117 @@
+[
+  {
+    "path": "assets/audio/four_lights_of_suzuran.mp3",
+    "sha256": "78edfc5d680402dfa209d4e7540b705bf541074ce8165a025b20d49f234cdd23",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/backgrounds/home_fixed_1861.png",
+    "sha256": "a00874c591ab3451a01cb9aa25bc71263aaec04fb50279d64fdcc3f562de1b10",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/backgrounds/projector_fixed_1908.png",
+    "sha256": "f53c900545b37a2d3e59c827b4bd39dcc355f96b62585644bb9c5a22ea18c927",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/backgrounds/red_game_fixed_1918.png",
+    "sha256": "e3e8513d74043d6a9a80e14920c3986cdfc4f7a9ce7399ed43afb5e3415d9220",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/backgrounds/welcome_1855_reference.png",
+    "sha256": "8d214debfee7de907fa8d50d7619b5ad7af9ef67e854c09521ad93f4e931825b",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/backgrounds/welcome_background_no_buttons.png",
+    "sha256": "71e8a334a9b4dba15c5612c88ef1ebba95e7a5912061ba55321456e7364b810f",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/buttons/hint_book_1864.png",
+    "sha256": "17824dd539ab59879c541891d92de855aa9ef96fb61f80adf12a7fc116e28809",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/buttons/how_to_play_1859.png",
+    "sha256": "0dd9dd1afa807102ac72bfd5e1b1d6902afb9509c3e4a3a3009149b95e356125",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/buttons/how_to_play_original.png",
+    "sha256": "0dd9dd1afa807102ac72bfd5e1b1d6902afb9509c3e4a3a3009149b95e356125",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/buttons/recommended_shops_1865.png",
+    "sha256": "3babb94e94922e2474706e6ada530be3c575b55ecec3ca1f35c43e7a552c95e2",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/buttons/scan_qr_1866.png",
+    "sha256": "89ae2bb45c541ed13d44371bbbf8c73338d5453c2b0db82f031d13d65d3d2fc2",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/buttons/start_button_original.png",
+    "sha256": "2ffda04c3146a8bd30e1f4c551796d457b0c2180977b3a725297b42504213b06",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/red-game/approved_yukata_character.png",
+    "sha256": "4d1ee1080e5071fcb196c087a8dfc451c7119c96bd27c8760915a70b877d90d1",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/red-game/yoyo_sheet_original_1919.png",
+    "sha256": "38730e009387abe5de9523fa3269137846c44775667774912a36744d4cee000b",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/red-game/yoyos/yoyo_01.png",
+    "sha256": "577cfa6efd1ca5ff71c75ef24f29591abe6c6951e27715fa3c4014958040ad25",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/red-game/yoyos/yoyo_02.png",
+    "sha256": "30a4b08135f5c202a74029be7b00f58825bc3b4e41edd8ba8da64fbcc804e3b3",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/red-game/yoyos/yoyo_03.png",
+    "sha256": "6a970abef01ccffd249a420fb5d49cc1b797f7dfdd879ebca66de08807ad1a8c",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/red-game/yoyos/yoyo_04.png",
+    "sha256": "6a4ba160395ad20b21fa8e57e80deb23c8e7f016c57e78178ee48f870176e313",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/red-game/yoyos/yoyo_05.png",
+    "sha256": "6f33e00bb22140799e2fcf6a01bc0929383e97cfc68e4f5686b8df83c66b4352",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/red-game/yoyos/yoyo_06.png",
+    "sha256": "5fd8f273f54512649686fa2550d9ccb1012320bcf236de54c8fb66addc081e8a",
+    "source": "user handoff ZIP; unchanged"
+  },
+  {
+    "path": "assets/buttons/hint_book_preview.png",
+    "sha256": "1d8cfed22856356a2b5e3b5100ed422cab13e32a1340374a487c47265cba54fe",
+    "source": "PNG extracted unchanged from approved reference HTML; preserves existing transparent bounds"
+  },
+  {
+    "path": "assets/buttons/recommended_shops_preview.png",
+    "sha256": "372b50dcf0a89497dad88611389db34258cc04a88d32ddebdfa821f5615d669e",
+    "source": "PNG extracted unchanged from approved reference HTML; preserves existing transparent bounds"
+  },
+  {
+    "path": "assets/buttons/scan_qr_preview.png",
+    "sha256": "5acb983d23ca435c8f93c76043e183ac934e22163c86a5677747c51bfd23db37",
+    "source": "PNG extracted unchanged from approved reference HTML; preserves existing transparent bounds"
+  }
+]

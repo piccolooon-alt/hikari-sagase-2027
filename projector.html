@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c1529">
+<title>光をさがせ！｜受付スクリーン・公開確認版</title>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/projector.css">
+<script src="js/projector.js" defer></script>
+</head>
+<body><main>
+<div class="head"><h1>受付スクリーン｜4色の光・発見カウント</h1><span class="demo-badge">公開確認版・この端末だけのデモ</span></div>
+
+<div id="screen-frame" class="screen-frame"><div id="stage" class="stage"><img alt="水袋公園の固定背景（変更なし）" src="assets/backgrounds/projector_fixed_1908.png" width="1536" height="864"><canvas id="overlay" aria-hidden="true"></canvas><div id="counts" class="stage-counts" aria-live="polite" aria-label="光の発見回数">
+ <div class="zone-counter tl" style="--glow:#ff7988"><div class="zone-label"><span class="zone-orb"></span>あかの光</div><div class="zone-numberline"><strong class="zone-value" data-counter="0">0</strong><span class="zone-unit">回発見</span></div></div>
+ <div class="zone-counter bl" style="--glow:#ffffff"><div class="zone-label"><span class="zone-orb"></span>しろの光</div><div class="zone-numberline"><strong class="zone-value" data-counter="1">0</strong><span class="zone-unit">回発見</span></div></div>
+ <div class="zone-counter tr" style="--glow:#ffdc79"><div class="zone-label"><span class="zone-orb"></span>きいろの光</div><div class="zone-numberline"><strong class="zone-value" data-counter="2">0</strong><span class="zone-unit">回発見</span></div></div>
+ <div class="zone-counter br" style="--glow:#7ccaff"><div class="zone-label"><span class="zone-orb"></span>あおの光</div><div class="zone-numberline"><strong class="zone-value" data-counter="3">0</strong><span class="zone-unit">回発見</span></div></div>
+</div></div></div>
+<div class="description" id="description">星くずが舞う演出：下のテストボタンで、その色の発見数が増え、星くずと光が広がるよ。</div>
+<div class="legend"><span class="label">動作確認用：1回押すと、その色を1回発見した想定になるよ。本物のQRとはつながっていないよ。</span></div>
+<div class="controls">
+<button type="button" data-color="0" style="--dot:#ff646c"><span class="dot"></span>赤の発見 ＋1（テスト）</button>
+<button type="button" data-color="1" style="--dot:#fff5e5"><span class="dot"></span>白の発見 ＋1（テスト）</button>
+<button type="button" data-color="2" style="--dot:#ffe06e"><span class="dot"></span>黄の発見 ＋1（テスト）</button>
+<button type="button" data-color="3" style="--dot:#66bcff"><span class="dot"></span>青の発見 ＋1（テスト）</button>
+</div>
+<div class="misc"><button id="sample" type="button">全色に5回ずつ追加（テスト）</button><button id="fullscreen" type="button">スクリーンを大きく表示</button></div><p id="projector-status" class="label" role="status"></p>
+<p class="note">この画面は受付スクリーンの見た目を確かめるデモです。発見数と光はこのブラウザー内だけに保存され、テスト中は減りません。スマホ画面・本物のQR・参加者ごとの重複防止・データベース・他の端末とはつながっていません。発見では提灯は灯りません。ゲームクリアによる提灯の点灯は、発見数とは別の将来の連携機能です。固定背景は変更していません。</p><p class="note"><a href="index.html">スマホ用ゲームの確認画面へ</a></p>
+</main>
+
+</body>
+</html>
