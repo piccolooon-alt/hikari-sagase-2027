@@ -8,16 +8,34 @@
   const YOYO_TYPES = Object.freeze(['red', 'blue', 'yellow', 'green', 'purple', 'pink']);
   // Rubber-ball circles measured within the supplied 600px PNGs; strings are not hit targets.
   const YOYO_BODIES = Object.freeze({
-    blue: Object.freeze({ cx: .473, cy: .625, r: .28 }),
-    green: Object.freeze({ cx: .458, cy: .632, r: .28 }),
-    pink: Object.freeze({ cx: .477, cy: .628, r: .29 }),
-    purple: Object.freeze({ cx: .458, cy: .637, r: .28 }),
-    red: Object.freeze({ cx: .442, cy: .615, r: .28 }),
-    yellow: Object.freeze({ cx: .468, cy: .633, r: .275 })
+    blue: Object.freeze({ cx: .473, cy: .625, r: .33 }),
+    green: Object.freeze({ cx: .458, cy: .632, r: .319 }),
+    pink: Object.freeze({ cx: .477, cy: .628, r: .323 }),
+    purple: Object.freeze({ cx: .458, cy: .637, r: .319 }),
+    red: Object.freeze({ cx: .442, cy: .615, r: .328 }),
+    yellow: Object.freeze({ cx: .468, cy: .633, r: .317 })
   });
+  // Opaque runs from approved_yukata_character.png alpha (BOX resize to 72 × 96, keep >= 224).
+  // Each row contains [left, right) pairs: hair, head, sleeves, torso and legs,
+  // preserving the transparent gaps between them. The approved PNG is unchanged.
+  const PLAYER_MASK_WIDTH = 72, PLAYER_MASK_HEIGHT = 96;
+  const PLAYER_MASK = Object.freeze([
+    [], [], [41,43,44,45], [36,47], [35,48,51,52], [34,53], [34,55], [33,57],
+    [33,58], [33,58], [31,32,33,59], [32,61], [32,60], [32,60], [32,61], [32,61],
+    [30,62], [30,31,34,60], [34,60], [33,60], [31,32,33,34,35,61], [26,27,36,62], [26,27,37,59,61,64], [26,27,31,32,37,58,62,64],
+    [36,37,38,57,60,61,64,65], [39,57,60,61,65,66], [29,30,34,35,41,56,60,61,65,66], [28,29,34,35,43,55,65,66], [42,53], [42,51,64,65], [31,32,39,53,62,63], [30,35,38,54],
+    [30,36,37,55], [25,28,30,55], [24,56,64,65], [20,21,24,56,64,67], [17,19,21,59,63,67], [19,59,63,67], [19,59,63,67], [15,66],
+    [19,64], [18,19,23,64], [22,65], [22,65], [21,65], [21,65], [14,65], [11,65],
+    [10,65], [9,51,52,65], [7,51,54,65], [6,52,54,65], [6,53,55,66], [5,10,13,23,25,54,56,66], [5,7,17,20,27,55,57,66], [27,55,57,67],
+    [27,67], [29,67], [32,50,54,67], [32,49,55,67], [24,28,33,50,56,67], [23,29,30,51,57,67], [22,52,59,66], [22,54,61,66],
+    [22,55,63,65], [21,56,63,65], [20,28,30,57], [20,27,30,58], [20,26,29,58], [20,26,29,59], [20,25,29,60], [22,24,30,60],
+    [30,61], [33,61], [34,61], [34,62], [34,61], [33,60], [33,38,41,58], [32,37,42,56],
+    [32,36,42,55], [31,35,42,55], [30,34,42,49,52,54], [29,33,44,47], [28,33], [27,33], [27,34], [27,34],
+    [27,35], [28,35], [29,35], [29,36], [29,36], [30,35], [32,34], [],
+  ].map(row => Object.freeze(row)));
   const DEFAULT_CONFIG = Object.freeze({
     duration: 30, lives: 3, height: 480,
-    playerWidth: 100, playerRadius: 16, playerSpeed: 520,
+    playerWidth: 100, playerSpeed: 520,
     invulnerability: 1.1, hitFeedbackDuration: .24,
     firstSpawnDelay: .7, spawnIntervalStart: 1.18, spawnIntervalEnd: .64,
     largeProbability: .18, maxObjects: 14,
@@ -35,14 +53,30 @@
     const angle = yoyo.angle || 0, cos = Math.cos(angle), sin = Math.sin(angle);
     return { x: yoyo.x + dx * cos - dy * sin, y: yoyo.y + dx * sin + dy * cos, radius: shape.r * yoyo.size };
   }
-  function playerBody(player) {
-    return { x: player.x + player.width * .04, y: player.y, radius: player.radius };
+  function playerContact(player, ball) {
+    const left = player.x - player.width / 2, top = player.top;
+    if (ball.x + ball.radius < left || ball.x - ball.radius > left + player.width ||
+        ball.y + ball.radius < top || ball.y - ball.radius > top + player.height) return null;
+    const cellWidth = player.width / PLAYER_MASK_WIDTH, cellHeight = player.height / PLAYER_MASK_HEIGHT;
+    const firstRow = Math.max(0, Math.floor((ball.y - ball.radius - top) / cellHeight));
+    const lastRow = Math.min(PLAYER_MASK_HEIGHT - 1, Math.floor((ball.y + ball.radius - top) / cellHeight));
+    let contact = null, nearest = Infinity;
+    for (let row = firstRow; row <= lastRow; row++) {
+      const spans = PLAYER_MASK[row];
+      const y = clamp(ball.y, top + row * cellHeight, top + (row + 1) * cellHeight);
+      for (let i = 0; i < spans.length; i += 2) {
+        const x = clamp(ball.x, left + spans[i] * cellWidth, left + spans[i + 1] * cellWidth);
+        const distance = (ball.x - x) ** 2 + (ball.y - y) ** 2;
+        if (distance < ball.radius ** 2 && distance < nearest) { contact = { x, y }; nearest = distance; }
+      }
+    }
+    return contact;
   }
   function validate(config) {
     for (const key of Object.keys(DEFAULT_CONFIG)) {
       if (!Number.isFinite(config[key]) || config[key] < 0) throw new RangeError(`Invalid red-game config: ${key}`);
     }
-    for (const key of ['duration', 'playerWidth', 'playerRadius', 'playerSpeed', 'spawnIntervalStart', 'spawnIntervalEnd', 'speedMin', 'speedMax', 'normalSizeMin', 'normalSizeMax', 'largeSizeMin', 'largeSizeMax', 'largeSpeedFactor']) {
+    for (const key of ['duration', 'playerWidth', 'playerSpeed', 'spawnIntervalStart', 'spawnIntervalEnd', 'speedMin', 'speedMax', 'normalSizeMin', 'normalSizeMax', 'largeSizeMin', 'largeSizeMax', 'largeSpeedFactor']) {
       if (config[key] === 0) throw new RangeError(`Red-game config must be positive: ${key}`);
     }
     if (!Number.isInteger(config.lives) || config.lives < 1 || !Number.isInteger(config.maxObjects) || config.maxObjects < 1) throw new RangeError('Lives and object cap must be positive integers');
@@ -59,15 +93,16 @@
     const state = {
       status: 'ready', width: WIDTH, height: config.height,
       elapsed: 0, remaining: config.duration, lives: config.lives,
-      invulnerable: 0, hitFeedback: 0, spawned: 0, yoyos: [],
-      player: { x: WIDTH / 2, width: config.playerWidth, height: config.playerWidth * 4 / 3, radius: config.playerRadius, bottom: 0, y: 0 }
+      invulnerable: 0, hitFeedback: 0, impact: null, spawned: 0, yoyos: [],
+      player: { x: WIDTH / 2, width: config.playerWidth, height: config.playerWidth * 4 / 3, bottom: 0, top: 0, y: 0 }
     };
     let targetX = WIDTH / 2, spawnIn = config.firstSpawnDelay, nextId = 0;
     let typeBag = [], directionBag = [], lastType = null, lastDirection = null;
 
     function playerGeometry() {
       state.player.bottom = state.height * .04;
-      state.player.y = state.height - state.player.bottom - state.player.height * .48;
+      state.player.top = state.height - state.player.bottom - state.player.height;
+      state.player.y = state.player.top + state.player.height * .52;
     }
     playerGeometry();
     function limits() { return { min: state.player.width / 2, max: WIDTH - state.player.width / 2 }; }
@@ -109,7 +144,7 @@
       let vx = dx / distance * speed, vy = dy / distance * speed;
       const shape = YOYO_BODIES[type];
       const maxBodyOffset = Math.hypot(shape.cx - .5, shape.cy - .5) * size;
-      const collisionBand = state.player.y - state.player.radius - shape.r * size - maxBodyOffset;
+      const collisionBand = state.player.top - shape.r * size - maxBodyOffset;
       // This bound holds even at the nearest side of the player's horizontal lane.
       // Short arenas slow the entire trajectory rather than introducing surprise side hits.
       if (config.minimumLeadTime > 0 && vy > 0) {
@@ -121,7 +156,7 @@
     }
     function start() {
       state.status = 'playing'; state.elapsed = 0; state.remaining = config.duration;
-      state.lives = config.lives; state.invulnerable = 0; state.hitFeedback = 0;
+      state.lives = config.lives; state.invulnerable = 0; state.hitFeedback = 0; state.impact = null;
       state.spawned = 0; state.yoyos.length = 0; nextId = 0;
       typeBag = []; directionBag = []; lastType = null; lastDirection = null;
       targetX = state.player.x = WIDTH / 2; spawnIn = config.firstSpawnDelay;
@@ -147,15 +182,14 @@
         const progress = clamp(state.elapsed / config.duration, 0, 1);
         spawnIn += config.spawnIntervalStart + (config.spawnIntervalEnd - config.spawnIntervalStart) * progress;
       }
-      const player = playerBody(state.player);
       for (let i = state.yoyos.length - 1; i >= 0; i--) {
         const yoyo = state.yoyos[i];
         yoyo.x += yoyo.vx * dt; yoyo.y += yoyo.vy * dt;
         yoyo.angle += yoyo.spin * dt; yoyo.age += dt;
-        const body = yoyoBody(yoyo), dx = body.x - player.x, dy = body.y - player.y;
-        if (state.invulnerable === 0 && dx * dx + dy * dy < (body.radius + player.radius) ** 2) {
+        const contact = state.invulnerable === 0 ? playerContact(state.player, yoyoBody(yoyo)) : null;
+        if (contact) {
           state.yoyos.splice(i, 1); state.lives--;
-          state.invulnerable = config.invulnerability; state.hitFeedback = config.hitFeedbackDuration;
+          state.invulnerable = config.invulnerability; state.hitFeedback = config.hitFeedbackDuration; state.impact = contact;
           if (state.lives <= 0) { state.status = 'lost'; return; }
           continue;
         }
@@ -186,5 +220,5 @@
     }
     return { state, config, start, step, pause, resume, setTargetX, movePlayer, resize };
   }
-  return Object.freeze({ DEFAULT_CONFIG, YOYO_TYPES, YOYO_BODIES, createGame, yoyoBody, playerBody });
+  return Object.freeze({ DEFAULT_CONFIG, YOYO_TYPES, YOYO_BODIES, createGame, yoyoBody, playerContact });
 });

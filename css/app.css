@@ -206,7 +206,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .red-arena{position:absolute;top:23%;bottom:15%;left:5%;width:90%;overflow:hidden;touch-action:none;user-select:none;z-index:2;border:1px solid #fff0d03d;border-radius:18px;background:#08122910}
 #red-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none}
 #red-character{position:absolute;bottom:4%;left:50%;width:27.777778%;height:auto;transform:translateX(-50%);filter:drop-shadow(0 3px 5px #0c154d55);user-select:none;pointer-events:none;z-index:1}
-#red-character.red-invulnerable{opacity:.55}
+#red-hit-effect{position:absolute;width:28px;height:28px;border:2px solid #fff2b1;border-radius:50%;box-shadow:0 0 10px #ffc1a1;pointer-events:none;z-index:2}
+#red-hit-effect::before,#red-hit-effect::after{content:"";position:absolute;background:#fff0cd;border-radius:2px;width:4px;height:10px;top:-8px;left:10px;box-shadow:0 30px #fff0cd}
+#red-hit-effect::after{transform:rotate(90deg);transform-origin:2px 22px}
+#red-hit-effect[hidden]{display:none}
+#red-character.red-last-hit{animation:red-last-hit-blink .36s steps(1,end) 2}
+#red-preview[data-game-state="lost"] #red-hit-effect{animation:red-last-hit-fade .24s ease-out forwards}
+@keyframes red-last-hit-blink{0%{opacity:.35}50%,100%{opacity:1}}
+@keyframes red-last-hit-fade{to{opacity:0}}
 .red-game-overlay{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;background:#0d173ac4;padding:16px;touch-action:manipulation;overflow-y:auto}
 .red-game-overlay[hidden],.red-game-panel[hidden]{display:none}
 .red-game-panel{max-width:360px;width:100%;text-align:center;background:linear-gradient(145deg,#2c3054f5,#13213ff5);border:1px solid #ffe8c68f;border-radius:22px;padding:24px 16px;box-shadow:0 8px 20px #0004}

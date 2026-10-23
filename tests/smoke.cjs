@@ -267,7 +267,7 @@ async function mobileFlow(browser, base, viewport) {
 async function redRoundFlow(browser, base) {
   await run('real red round: six sprites, 30-second clear, body hits, loss and immediate retry', async () => {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-    await observeGame(context, 2027);
+    await observeGame(context, 5);
     const page = await context.newPage();
     const check = diagnostics(page, new URL(base).origin);
     try {
@@ -281,7 +281,7 @@ async function redRoundFlow(browser, base) {
       async function steer(seekHit) {
         const target = await page.evaluate(wantHit => {
           const model = window.__redGameUnderTest, state = model.state;
-          const body = window.HikariRedModel.playerBody(state.player);
+          const body = { y: state.player.y };
           let x = state.player.x;
           if (wantHit) {
             const arriving = state.yoyos.map(yoyo => {
@@ -297,11 +297,14 @@ async function redRoundFlow(browser, base) {
             let best = Infinity;
             for (let candidate = 50; candidate <= 310; candidate += 13) {
               let cost = Math.abs(candidate - state.player.x) * .015;
-              for (const yoyo of state.yoyos) for (let t = .1; t <= 1.5; t += .1) {
+              for (const yoyo of state.yoyos) for (let t = .05; t <= 2.5; t += .1) {
                 const future = window.HikariRedModel.yoyoBody({ ...yoyo, x: yoyo.x + yoyo.vx * t, y: yoyo.y + yoyo.vy * t, angle: yoyo.angle + yoyo.spin * t });
-                const px = state.player.x + Math.max(-model.config.playerSpeed * t, Math.min(model.config.playerSpeed * t, candidate - state.player.x)) + state.player.width * .04;
-                const gap = Math.hypot(future.x - px, future.y - body.y) - future.radius - body.radius;
-                if (gap < 18) cost += (18 - gap) ** 2 / (t + .15);
+                const px = state.player.x + Math.max(-model.config.playerSpeed * t, Math.min(model.config.playerSpeed * t, candidate - state.player.x));
+                const near = window.HikariRedModel.playerContact({ ...state.player, x: px }, { ...future, radius: future.radius + 24 });
+                if (near) {
+                  const gap = Math.hypot(future.x - near.x, future.y - near.y) - future.radius;
+                  cost += (24 - gap) ** 2 / (t + .05) ** 2;
+                }
               }
               if (cost < best) { best = cost; x = candidate; }
             }
@@ -341,6 +344,8 @@ async function redRoundFlow(browser, base) {
       await page.mouse.up();
       assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.status), 'lost', 'actual sprite-body collisions consume all three lives');
       assert.equal(await page.locator('#red-lives').getAttribute('data-remaining'), '0');
+      assert.equal(await page.locator('#red-character').evaluate(el => el.classList.contains('red-last-hit')), true, 'the final hit also blinks');
+      assert.equal(await page.locator('#red-hit-effect').evaluate(el => el.hidden), false, 'the final hit also has an impact effect');
       await snapshot(page, '390-red-failed');
       await page.locator('#red-retry').tap();
       assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.status), 'playing');

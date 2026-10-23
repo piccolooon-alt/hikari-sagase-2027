@@ -1,6 +1,6 @@
 /* Deterministic game simulations and collision fixtures; no browser or external service. */
 const assert = require('node:assert/strict');
-const { createGame, YOYO_TYPES, yoyoBody, playerBody } = require('../js/red-game-model.js');
+const { createGame, YOYO_TYPES, yoyoBody, playerContact } = require('../js/red-game-model.js');
 
 let passed = 0;
 function run(name, check) { check(); passed++; console.log(`PASS ${name}`); }
@@ -14,12 +14,12 @@ function advance(game, seconds) {
     const step = Math.min(.05, remaining); game.step(step); remaining -= step;
   }
 }
-function hitFixture(game, offsetX = 0, offsetY = 0) {
-  const player = playerBody(game.state.player);
-  const yoyo = { id: -1, type: 'blue', x: 0, y: 0, size: 80, vx: 0, vy: 0, angle: 0, spin: 0, age: 3, large: false, direction: 'top' };
+function hitFixture(game, localX = .54, localY = .52, angle = 0) {
+  const player = game.state.player;
+  const yoyo = { id: -1, type: 'blue', x: 0, y: 0, size: 80, vx: 0, vy: 0, angle, spin: 0, age: 3, large: false, direction: 'top' };
   const body = yoyoBody(yoyo);
-  yoyo.x += player.x - body.x + offsetX;
-  yoyo.y += player.y - body.y + offsetY;
+  yoyo.x += player.x + (localX - .5) * player.width - body.x;
+  yoyo.y += player.top + localY * player.height - body.y;
   game.state.yoyos.push(yoyo);
   return yoyo;
 }
@@ -65,19 +65,48 @@ run('three body hits cause loss; hit grace prevents a damage cascade; retry rese
   assert.equal(game.state.player.x, 180);
 });
 
-run('collision excludes the string/transparent area and forgiving edges', () => {
+run('head, torso, sleeves and legs collide at their visible source-image positions', () => {
+  for (const [part, x, y] of [['head', .66, .20], ['torso', .64, .47], ['sleeve', .32, .50], ['leg', .43, .88]]) {
+    for (const angle of [-.6, 0, .6]) {
+      const game = createGame({ config: { firstSpawnDelay: 60 } }); game.start();
+      hitFixture(game, x, y, angle); game.step(1 / 60);
+      assert.equal(game.state.lives, 2, `${part}: rotated rubber ball overlaps visible body`);
+      assert.ok(game.state.impact && game.state.hitFeedback > 0);
+    }
+  }
+});
+
+run('transparent corners/gaps and the trailing string do not count as a body hit', () => {
   const game = createGame({ config: { firstSpawnDelay: 60 } }); game.start();
-  const string = hitFixture(game, 0, 45);
-  const player = playerBody(game.state.player);
-  assert.ok(string.y - string.size / 2 < player.y && string.y + string.size / 2 > player.y, 'the full square overlaps the player');
+  const player = game.state.player;
+  for (const [x, y] of [[.10, .08], [.04, .90], [.98, .90]]) {
+    // A small probe isolates genuine transparent spaces from nearby opaque limbs.
+    assert.equal(playerContact(player, { x: player.x + (x - .5) * player.width,
+      y: player.top + y * player.height, radius: 2 }), null);
+  }
+  const transparent = hitFixture(game, .02, .03);
   game.step(1 / 60);
-  assert.equal(game.state.lives, 3, 'the string part of the square is not a hit target');
+  assert.equal(game.state.lives, 3, 'a normal-size ball in the transparent upper-left image box is safe');
+  assert.ok(game.state.yoyos.includes(transparent));
   game.state.yoyos.length = 0;
-  hitFixture(game, 49, 0); game.step(1 / 60);
-  assert.equal(game.state.lives, 3, 'loose image-edge overlap does not count as a body hit');
+  const string = hitFixture(game, .44, 1.25);
+  assert.ok(string.y - string.size / 2 < player.top + player.height, 'the full PNG box reaches the feet');
+  game.step(1 / 60);
+  assert.equal(game.state.lives, 3, 'only the string reaches the girl; rubber ball is below her');
   game.state.yoyos.length = 0;
   hitFixture(game); game.step(1 / 60);
   assert.equal(game.state.lives, 2, 'the rubber body itself still causes a hit');
+});
+
+run('invulnerability lasts 1.1 seconds and simultaneous overlaps cost exactly one heart', () => {
+  const game = createGame({ config: { firstSpawnDelay: 60 } }); game.start();
+  hitFixture(game); hitFixture(game); game.step(1 / 120);
+  assert.equal(game.state.lives, 2);
+  assert.equal(game.state.invulnerable, 1.1);
+  advance(game, 1.09);
+  assert.equal(game.state.lives, 2);
+  advance(game, .02);
+  assert.equal(game.state.lives, 1);
 });
 
 run('all six sprites cycle without adjacent repeats; directions vary; large yoyos are uncommon and slower', () => {
@@ -117,7 +146,7 @@ run('every direction provides visible approach time before reaching the collisio
         assert.ok(initial.vy > 0, 'no surprise hazard rises from below');
         for (let time = 0; time <= 1.5; time += .05) {
           const body = yoyoBody({ ...initial, x: initial.x + initial.vx * time, y: initial.y + initial.vy * time, angle: initial.angle + initial.spin * time });
-          assert.ok(body.y + body.radius < game.state.player.y - game.state.player.radius, `${height}px ${initial.direction} must allow at least 1.5s to react`);
+          assert.ok(body.y + body.radius < game.state.player.top, `${height}px ${initial.direction} must allow at least 1.5s to react`);
         }
       }
     }

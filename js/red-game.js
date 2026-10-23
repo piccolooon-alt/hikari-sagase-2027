@@ -8,6 +8,11 @@
   const canvas = $('red-canvas');
   const brush = canvas.getContext('2d', { alpha: true });
   const character = $('red-character');
+  const hitEffect = document.createElement('div');
+  hitEffect.id = 'red-hit-effect';
+  hitEffect.hidden = true;
+  hitEffect.setAttribute('aria-hidden', 'true');
+  arena.append(hitEffect);
   const overlay = $('red-overlay');
   const startPanel = $('red-start-panel');
   const resultPanel = $('red-result-panel');
@@ -63,10 +68,22 @@
       $('red-lives').dataset.remaining = String(state.lives);
     }
     character.classList.toggle('red-invulnerable', state.invulnerable > 0 && playing);
+    character.classList.toggle('red-last-hit', state.status === 'lost');
+    // Drive the blink from active game time, so pause/resume freezes it with the game.
+    character.style.opacity = state.invulnerable > 0 && playing &&
+      Math.floor((game.config.invulnerability - state.invulnerable) / .18) % 2 === 0 ? '.35' : '1';
     character.style.left = `${state.player.x / state.width * 100}%`;
     character.style.width = `${state.player.width / state.width * 100}%`;
     character.style.bottom = `${state.player.bottom / state.height * 100}%`;
     character.style.transform = 'translateX(-50%)';
+    hitEffect.hidden = !state.impact || state.hitFeedback <= 0 || (!playing && state.status !== 'lost');
+    if (!hitEffect.hidden) {
+      const progress = 1 - state.hitFeedback / game.config.hitFeedbackDuration;
+      hitEffect.style.left = `${state.impact.x / state.width * 100}%`;
+      hitEffect.style.top = `${state.impact.y / state.height * 100}%`;
+      hitEffect.style.opacity = String(1 - progress);
+      hitEffect.style.transform = `translate(-50%, -50%) scale(${.6 + progress * .8})`;
+    }
 
     if (statusChanged) {
       if (state.status === 'ready') $('red-status').textContent = 'スタートを押すと、ヨーヨーよけが始まります。';
