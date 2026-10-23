@@ -192,31 +192,42 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .qr-day,.hint-day,.shop-day,.howto-day{margin-right:44px}
 .found-layout{padding-top:65px}
 
-/* Approved red-game composition, deliberately without a scoring/gameplay system. */
+/* Playable red demo over the unchanged approved background and character. */
 #red-preview{background:#151c42;color:#fff}
 #red-preview .art{object-fit:cover;z-index:0}
 .red-preview-header{position:absolute;z-index:4;top:calc(12px + env(safe-area-inset-top));left:5%;right:17%;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .red-preview-badge{font-size:clamp(10px,2.8cqw,13px);font-weight:700;background:#0c1738bf;border:1px solid #ffe4ba88;border-radius:99px;padding:8px}
-.red-preview-title{position:absolute;top:11%;left:0;width:100%;font-weight:800;font-size:clamp(21px,6.3cqw,30px);text-align:center;text-shadow:0 2px 5px #19204f,0 0 16px #ff8da5;margin:0;z-index:3}
-.yoyo-layer{position:absolute;inset:18% 0 27%;overflow:hidden;pointer-events:none;z-index:1}
-.falling-yoyo{position:absolute;width:18%;height:auto;top:-30%;animation:yoyo-fall 7s linear infinite;filter:drop-shadow(0 4px 5px #27184255);user-select:none}
-.yoyo-1{left:2%;animation-delay:-1s}.yoyo-2{left:28%;animation-delay:-4s}.yoyo-3{left:52%;animation-delay:-2.4s}.yoyo-4{left:77%;animation-delay:-5.8s}.yoyo-5{left:15%;animation-delay:-6.8s}.yoyo-6{left:65%;animation-delay:-.4s}
-/* The supplied cutouts include neighboring-sheet fragments at their edges.
-   Hide only those fragments in CSS; the original PNGs, main bodies and strings stay unchanged. */
-.yoyo-1{clip-path:polygon(0 0,100% 0,100% 40%,88% 42%,88% 100%,0 100%)}
-.yoyo-2{clip-path:polygon(12% 0,98% 0,98% 100%,0 100%,0 30%,12% 28%)}
-.yoyo-3{clip-path:inset(0 0 0 2%)}.yoyo-4{clip-path:inset(0 2% 0 0)}
-.yoyo-5{clip-path:inset(0 2% 0 2%)}.yoyo-6{clip-path:inset(0 0 0 2%)}
-.motion-playing .falling-yoyo{animation-play-state:running}
-@keyframes yoyo-fall{from{top:-30%;transform:rotate(-9deg)}to{top:110%;transform:rotate(12deg)}}
-.screen:not(.active) .falling-yoyo,.motion-paused .falling-yoyo{animation-play-state:paused}
-.red-character-zone{position:absolute;left:0;right:0;top:49%;bottom:22%;touch-action:none;user-select:none;z-index:2}
-#red-character{position:absolute;bottom:0;left:50%;width:36%;max-height:100%;object-fit:contain;transform:translateX(-50%);filter:drop-shadow(0 4px 8px #0c154d6b);user-select:none;pointer-events:none}
-.red-preview-footer{position:absolute;bottom:0;left:0;width:100%;min-height:21%;z-index:3;padding:10px 4% calc(12px + env(safe-area-inset-bottom));background:linear-gradient(0deg,#08152ff2,#131e42db 80%,transparent);text-align:center}
+.red-preview-title{position:absolute;top:9%;left:0;width:100%;font-weight:800;font-size:clamp(21px,6.3cqw,30px);text-align:center;text-shadow:0 2px 5px #19204f,0 0 16px #ff8da5;margin:0;z-index:3}
+.red-game-hud{position:absolute;top:15%;left:6%;right:6%;display:flex;align-items:center;justify-content:space-between;z-index:3;gap:10px}
+.red-game-stat{display:flex;align-items:baseline;gap:5px;background:#101c3bd9;border:1px solid #ffe2c982;border-radius:16px;padding:8px 12px;box-shadow:0 2px 8px #101b3840;white-space:nowrap}
+.red-game-stat span{font-size:clamp(10px,2.8cqw,13px)}
+.red-game-stat strong{font-size:clamp(19px,5.2cqw,25px);color:#fff0c9;font-variant-numeric:tabular-nums}
+#red-lives{color:#ffb8cc;font-size:clamp(16px,4.5cqw,22px)}
+.red-arena{position:absolute;top:23%;bottom:15%;left:5%;width:90%;overflow:hidden;touch-action:none;user-select:none;z-index:2;border:1px solid #fff0d03d;border-radius:18px;background:#08122910}
+#red-canvas{position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none}
+#red-character{position:absolute;bottom:4%;left:50%;width:27.777778%;height:auto;transform:translateX(-50%);filter:drop-shadow(0 3px 5px #0c154d55);user-select:none;pointer-events:none;z-index:1}
+#red-hit-effect{position:absolute;width:28px;height:28px;border:2px solid #fff2b1;border-radius:50%;box-shadow:0 0 10px #ffc1a1;pointer-events:none;z-index:2}
+#red-hit-effect::before,#red-hit-effect::after{content:"";position:absolute;background:#fff0cd;border-radius:2px;width:4px;height:10px;top:-8px;left:10px;box-shadow:0 30px #fff0cd}
+#red-hit-effect::after{transform:rotate(90deg);transform-origin:2px 22px}
+#red-hit-effect[hidden]{display:none}
+#red-character.red-last-hit{animation:red-last-hit-blink .36s steps(1,end) 2}
+#red-preview[data-game-state="lost"] #red-hit-effect{animation:red-last-hit-fade .24s ease-out forwards}
+@keyframes red-last-hit-blink{0%{opacity:.35}50%,100%{opacity:1}}
+@keyframes red-last-hit-fade{to{opacity:0}}
+.red-game-overlay{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;background:#0d173ac4;padding:16px;touch-action:manipulation;overflow-y:auto}
+.red-game-overlay[hidden],.red-game-panel[hidden]{display:none}
+.red-game-panel{max-width:360px;width:100%;text-align:center;background:linear-gradient(145deg,#2c3054f5,#13213ff5);border:1px solid #ffe8c68f;border-radius:22px;padding:24px 16px;box-shadow:0 8px 20px #0004}
+.red-game-panel h2{font-size:clamp(22px,6.2cqw,29px);color:#fff0ce;line-height:1.45;margin:0 0 18px;text-shadow:0 0 18px #ffd6a155}
+.red-game-panel p{font-size:clamp(13px,3.5cqw,16px);line-height:1.8;margin:10px 0 16px;color:#fff1e3}
+.red-game-panel p.red-game-panel-small{font-size:clamp(11px,3cqw,14px);color:#e3ddea}
+.red-game-panel .red-load-status{min-height:1.5em;font-size:12px;color:#eae5ee}
+.red-game-primary{border:0;border-radius:999px;min-height:52px;width:100%;padding:12px;background:linear-gradient(#fff9d8,#ffdc98);color:#4b2b32;font-weight:800;font-size:clamp(16px,4.6cqw,21px);cursor:pointer;box-shadow:0 0 20px #ffdf9829}
+.red-game-primary:disabled{opacity:.5;cursor:wait}
+.red-preview-footer{position:absolute;bottom:0;left:0;width:100%;z-index:3;padding:8px 4% calc(12px + env(safe-area-inset-bottom));background:linear-gradient(0deg,#08152ff2,#131e42db 80%,transparent);text-align:center}
 .red-preview-footer p{font-size:clamp(11px,3.1cqw,14px);font-weight:600;line-height:1.6;margin:3px 0 8px;text-shadow:0 1px 5px #000}
-.red-preview-controls{display:flex;align-items:center;justify-content:center;gap:7px}
-.red-preview-controls button{min-height:44px;border:1px solid #ffe4b9ab;border-radius:999px;background:#17264de6;color:#fff0cf;padding:8px 11px;font-size:clamp(11px,3cqw,14px);font-weight:700;cursor:pointer}
-.red-preview-controls #red-motion{background:#fff0c8;color:#3c2c35}
+.red-preview-controls{display:flex;align-items:center;justify-content:center;gap:8px}
+.red-preview-controls button{min-height:44px;min-width:65px;border:1px solid #ffe4b9ab;border-radius:999px;background:#17264de6;color:#fff0cf;padding:8px 13px;font-size:clamp(12px,3.2cqw,15px);font-weight:700;cursor:pointer;touch-action:manipulation}
+.red-preview-controls button:disabled{opacity:.45;cursor:default}
+.red-preview-controls #red-pause{background:#fff0c8;color:#3c2c35}
 .red-preview-footer .red-preview-note{font-size:clamp(10px,2.6cqw,12px);margin:8px 0 0;color:#fff1d4}
-@media(max-height:650px){.red-preview-title{top:14%}.red-preview-footer{padding-top:6px}.red-preview-footer p{font-size:11px;line-height:1.4}.red-preview-header{top:8px}.red-preview-badge{padding:6px;font-size:10px}.red-character-zone{top:45%;bottom:28%}}
-@media(prefers-reduced-motion:reduce){.falling-yoyo{animation-duration:7s!important;animation-play-state:paused}.load-msg{animation:none!important;opacity:1}}
+@media(max-height:700px){.red-preview-header{top:8px}.red-preview-badge{padding:6px;font-size:10px}.red-preview-title{top:10%;font-size:22px}.red-game-hud{top:17%}.red-game-stat{padding:5px 9px}.red-arena{top:26%;bottom:20%}.red-game-panel{padding:14px 10px}.red-game-panel h2{margin-bottom:8px;font-size:21px}.red-game-panel p{margin:7px 0 10px;font-size:12px;line-height:1.6}.red-game-panel p.red-game-panel-small{font-size:10px}.red-preview-footer{padding-top:5px}.red-preview-footer p{font-size:11px;line-height:1.4}.red-preview-footer .red-preview-note{font-size:9px}}

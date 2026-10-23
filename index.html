@@ -56,10 +56,10 @@
       <div id="found-orb" class="found-orb" aria-hidden="true"></div>
       <h2 id="found-name" class="found-name">あかの光</h2>
       <p class="found-message">すごい！光を発見したね！<br>つぎはミニゲームの画面を見てみよう！</p>
-      <button id="found-play" class="found-primary">赤の画面素材をみる ›</button>
+      <button id="found-play" class="found-primary">ヨーヨーよけであそぶ ›</button>
       <button id="found-hint" class="found-secondary">次の冒険者へヒントをのこす</button>
       <button id="found-home" class="found-secondary">ホームにもどる</button>
-      <p class="found-note">※ 確認版の発見デモです。クリアや提灯の点灯はありません。<br>本番ではゲームをクリアすると提灯が灯る予定です。</p>
+      <p class="found-note">※ 赤のゲームは単体デモとして遊べます。<br>受付スクリーンのカウント・提灯とはまだ連動しません。</p>
     </div>
   </section>
 
@@ -198,33 +198,62 @@
 
   <div class="modal-wrap" id="modalwrap" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><h2 id="modal-title"></h2><div id="modal-body"></div><button class="close-btn" id="close-modal">もどる</button></div></div>
 
-  <!-- 採用済みの第1曲。ユーザー操作を受けて再生します。 -->
+  <!-- 共通曲と各色のゲーム曲を、ひとつの音楽操作で切り替えます。 -->
   <audio id="suzuran-bgm" loop preload="none" playsinline src="assets/audio/four_lights_of_suzuran.mp3" aria-label="すずらんの冒険BGM"></audio>
   <button id="bgm-toggle" type="button" aria-label="BGMを再生する" title="BGMを再生する" hidden>♪</button>
 
-<section id="red-preview" class="screen" aria-label="赤の水風船ヨーヨーよけ 素材確認">
+<section id="red-preview" class="screen" aria-label="赤の水風船ヨーヨーよけ ゲーム単体のデモ">
   <img class="art" src="assets/backgrounds/red_game_fixed_1918.png" alt="">
-  <div class="red-preview-header"><button id="red-preview-back" class="qr-back">‹ もどる</button><span class="red-preview-badge">画面素材確認モード</span></div>
+  <div class="red-preview-header"><button id="red-preview-back" class="qr-back">‹ もどる</button><span class="red-preview-badge">ゲーム単体のデモ</span></div>
   <h1 class="red-preview-title">水風船ヨーヨーよけ</h1>
-  <div class="yoyo-layer" aria-hidden="true">
-    <img class="falling-yoyo yoyo-1" src="assets/red-game/yoyos/yoyo_01.png" alt="">
-    <img class="falling-yoyo yoyo-2" src="assets/red-game/yoyos/yoyo_02.png" alt="">
-    <img class="falling-yoyo yoyo-3" src="assets/red-game/yoyos/yoyo_03.png" alt="">
-    <img class="falling-yoyo yoyo-4" src="assets/red-game/yoyos/yoyo_04.png" alt="">
-    <img class="falling-yoyo yoyo-5" src="assets/red-game/yoyos/yoyo_05.png" alt="">
-    <img class="falling-yoyo yoyo-6" src="assets/red-game/yoyos/yoyo_06.png" alt="">
+  <div class="red-game-hud" aria-label="ゲームの状況">
+    <div class="red-game-stat"><span>のこり</span><strong id="red-time">30.0</strong><span>びょう</span></div>
+    <div class="red-game-stat"><span>ライフ</span><strong id="red-lives" aria-label="ライフ3つ">♥ ♥ ♥</strong></div>
   </div>
-  <div class="red-character-zone" id="red-character-zone" role="group" aria-label="浴衣の子の位置を確認">
+  <div id="red-arena" class="red-arena" role="group" tabindex="0" aria-label="浴衣の子を指で左右に動かすゲームエリア">
+    <canvas id="red-canvas" aria-label="いろいろな方向から飛んでくる水風船ヨーヨー"></canvas>
     <img id="red-character" src="assets/red-game/approved_yukata_character.png" alt="採用済みの明るい水色の浴衣の女の子" draggable="false">
+    <div id="red-overlay" class="red-game-overlay">
+      <div id="red-start-panel" class="red-game-panel">
+        <h2>30びょう よけよう！</h2>
+        <p>浴衣の子を、ゆびで左右に動かしてね。<br>ヨーヨーに当たらないように進もう！</p>
+        <p id="red-start-rules" class="red-game-panel-small">ライフは3つ。大きいヨーヨーも来るよ。<br>パソコンは左右の矢印キーでも遊べます。</p>
+        <p id="red-load-status" class="red-load-status" role="status">ヨーヨーを準備しているよ…</p>
+        <button id="red-start" class="red-game-primary" disabled>スタート！</button>
+      </div>
+      <div id="red-result-panel" class="red-game-panel" hidden>
+        <h2 id="red-overlay-title">おつかれさま！</h2>
+        <p id="red-overlay-text"></p>
+        <button id="red-retry" class="red-game-primary">もういっかい！</button>
+        <p class="red-game-panel-small">このゲームだけのデモです。<br>受付スクリーンの提灯とは連動しません。</p>
+      </div>
+      <div id="red-pause-panel" class="red-game-panel" hidden>
+        <h2>ひとやすみ 🌙</h2>
+        <p>じゅんびができたら、つづきから遊ぼう。</p>
+        <button id="red-resume" class="red-game-primary">つづきから遊ぶ</button>
+      </div>
+    </div>
   </div>
   <div class="red-preview-footer">
-    <p>背景・ヨーヨー・浴衣の子の見た目を確認しよう。<br>ルール・難しさ・ライフ数はこれから相談します。</p>
-    <div class="red-preview-controls"><button id="red-left" aria-label="浴衣の子を左へ">‹ 左へ</button><button id="red-motion" aria-pressed="false">ヨーヨーをとめる</button><button id="red-right" aria-label="浴衣の子を右へ">右へ ›</button></div>
-    <p class="red-preview-note">指で左右に動かせます。得点・当たり判定・クリアはありません。</p>
+    <p>👆 浴衣の子を指で左右に動かしてね</p>
+    <div class="red-preview-controls"><button id="red-left" aria-label="浴衣の子を左へ">‹ 左へ</button><button id="red-pause" disabled>ひとやすみ</button><button id="red-right" aria-label="浴衣の子を右へ">右へ ›</button></div>
+    <p id="red-rule-summary" class="red-preview-note">30秒・ライフ3つのおためし。受付の提灯との連動はまだありません。</p>
   </div>
+  <div id="red-sprite-assets" hidden aria-hidden="true">
+    <img src="assets/red-game/yoyos-v2/yoyo_red.png" data-yoyo="red" alt="">
+    <img src="assets/red-game/yoyos-v2/yoyo_blue.png" data-yoyo="blue" alt="">
+    <img src="assets/red-game/yoyos-v2/yoyo_yellow.png" data-yoyo="yellow" alt="">
+    <img src="assets/red-game/yoyos-v2/yoyo_green.png" data-yoyo="green" alt="">
+    <img src="assets/red-game/yoyos-v2/yoyo_purple.png" data-yoyo="purple" alt="">
+    <img src="assets/red-game/yoyos-v2/yoyo_pink.png" data-yoyo="pink" alt="">
+  </div>
+  <p id="red-status" class="sr-only" role="status" aria-live="polite"></p>
 </section>
 <div class="preview-label" aria-label="公開確認版">公開確認版</div>
 </main>
 <script src="js/demo-store.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/red-game-model.js"></script>
+<script src="js/red-game.js"></script>
 <script src="js/app.js"></script>
 </body></html>

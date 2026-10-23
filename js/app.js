@@ -40,6 +40,8 @@
 
   function show(id, { historyMode = 'push', focus = true } = {}) {
     if (!screens.some(el => el.id === id)) id = 'home';
+    const previous = document.querySelector('.screen.active')?.id;
+    if (previous === 'red-preview' && id !== previous) window.HikariRedGame.leave();
     closeModal(false);
     screens.forEach(el => {
       const active = el.id === id;
@@ -48,6 +50,8 @@
       el.inert = !active;
     });
     document.querySelector('.app').dataset.screen = id;
+    window.HikariAudio.selectScene(id === 'red-preview' ? 'red' : 'common');
+    if (id === 'red-preview' && previous !== id) window.HikariRedGame.enter();
     $('bgm-toggle').hidden = id === 'loading';
     if (historyMode !== 'none' && id !== 'loading') {
       const url = new URL(location.href);
@@ -90,35 +94,6 @@
     }
   });
 
-  // The same audio element remains mounted on every screen, including the red preview.
-  const player = $('suzuran-bgm');
-  const musicButton = $('bgm-toggle');
-  let muted = store.getMuted();
-  player.volume = 0.27;
-  function updateMusic() {
-    const playing = !player.paused && !player.ended;
-    musicButton.textContent = playing ? '♫' : '♪';
-    musicButton.setAttribute('aria-label', playing ? 'BGMを止める' : 'BGMを再生する');
-    musicButton.setAttribute('aria-pressed', String(playing));
-    musicButton.title = player.error ? 'BGMを読み込めませんでした。もう一度試してね。' : playing ? '音楽 ON' : '音楽 OFF';
-  }
-  function playMusic() {
-    if (muted || !player.paused) return;
-    player.play().then(updateMusic).catch(updateMusic);
-  }
-  document.addEventListener('click', e => {
-    if (e.target.closest('#bgm-toggle') || $('loading').classList.contains('active')) return;
-    playMusic();
-  }, true);
-  musicButton.addEventListener('click', () => {
-    muted = !player.paused;
-    if (muted) player.pause(); else playMusic();
-    store.setMuted(muted);
-    updateMusic();
-  });
-  ['play', 'pause', 'error'].forEach(event => player.addEventListener(event, updateMusic));
-  updateMusic();
-
   function renderDiscovered(color) {
     const i = colors.indexOf(color);
     if (i < 0) return;
@@ -126,7 +101,7 @@
     $('found-orb').style.background = `radial-gradient(circle at 33% 27%,#fff 0%,color-mix(in srgb,${paint[i]} 45%,white 55%) 28%,${paint[i]} 67%,color-mix(in srgb,${paint[i]} 65%,black 35%))`;
     $('found-orb').style.boxShadow = `0 0 22px ${paint[i]},0 0 65px ${paint[i]}9a`;
     $('found-name').textContent = `${names[i]}の光`;
-    $('found-play').textContent = color === 'red' ? '赤の画面素材をみる ›' : 'ミニゲームについて ›';
+    $('found-play').textContent = color === 'red' ? 'ヨーヨーよけであそぶ ›' : 'ミニゲームについて ›';
   }
   function discover(color) {
     const i = colors.indexOf(color);
@@ -273,33 +248,10 @@
     openShops(true);
   });
 
-  // A composition preview only: no collisions, lives, timer, score or game-clear state.
-  let characterX = 50;
-  function moveCharacter(x) { characterX = Math.min(82, Math.max(18, x)); $('red-character').style.left = `${characterX}%`; }
-  const zone = $('red-character-zone');
-  zone.addEventListener('pointerdown', e => { zone.setPointerCapture(e.pointerId); positionCharacter(e); });
-  zone.addEventListener('pointermove', e => { if (zone.hasPointerCapture(e.pointerId)) positionCharacter(e); });
-  function positionCharacter(e) {
-    const bounds = zone.getBoundingClientRect(); moveCharacter((e.clientX - bounds.left) / bounds.width * 100);
-  }
-  $('red-left').addEventListener('click', () => moveCharacter(characterX - 12));
-  $('red-right').addEventListener('click', () => moveCharacter(characterX + 12));
+  // Game controls live in red-game.js; the app keeps its existing routes and shared BGM.
   $('red-preview-back').addEventListener('click', () => {
     if (found.includes('red')) discover('red'); else show('home');
   });
-  const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
-  let pausedMotion = motionPreference.matches;
-  function updateRedMotion() {
-    $('red-preview').classList.toggle('motion-paused', pausedMotion);
-    $('red-preview').classList.toggle('motion-playing', !pausedMotion);
-    $('red-motion').setAttribute('aria-pressed', String(pausedMotion));
-    $('red-motion').textContent = pausedMotion ? 'ヨーヨーを動かす' : 'ヨーヨーをとめる';
-  }
-  $('red-motion').addEventListener('click', () => { pausedMotion = !pausedMotion; updateRedMotion(); });
-  motionPreference.addEventListener('change', event => {
-    if (event.matches) { pausedMotion = true; updateRedMotion(); }
-  });
-  updateRedMotion();
 
   function restoreRoute(historyMode = 'none') {
     const hash = location.hash.slice(1), id = routes[hash] || hash;
