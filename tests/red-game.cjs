@@ -212,4 +212,28 @@ run('gentler defaults reduce incoming hazards without changing the 30-second thr
 });
 
 
+
+run('reducing spawn density yields a calmer first-day round without changing gameplay rules', () => {
+  const fewer = createGame({ random: random(2027), config: { lives: 1000 } });
+  const earlier = createGame({
+    random: random(2027),
+    config: { lives: 1000, spawnIntervalStart: 1.33, spawnIntervalEnd: .75 }
+  });
+  assert.equal(fewer.config.duration, 30);
+  assert.equal(fewer.config.speedMin, earlier.config.speedMin);
+  assert.equal(fewer.config.speedMax, earlier.config.speedMax);
+  assert.equal(fewer.config.lives, earlier.config.lives);
+  assert.equal(fewer.config.invulnerability, earlier.config.invulnerability);
+  assert.equal(fewer.config.largeProbability, earlier.config.largeProbability);
+  fewer.start(); earlier.start();
+  advance(fewer, 30); advance(earlier, 30);
+  assert.equal(fewer.state.status, 'won');
+  assert.equal(earlier.state.status, 'won');
+  assert.ok(fewer.state.spawned >= 16 && fewer.state.spawned <= 20,
+    'roughly 18 yoyos should appear during 30 seconds');
+  assert.ok(fewer.state.spawned <= earlier.state.spawned * .7,
+    'density drops by about a third or more');
+});
+
+
 console.log(`${passed} red-game model scenarios passed.`);
