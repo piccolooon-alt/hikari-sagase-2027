@@ -37,7 +37,7 @@
     duration: 30, lives: 3, height: 480,
     playerWidth: 100, playerSpeed: 520,
     invulnerability: 1.1, hitFeedbackDuration: .24,
-    firstSpawnDelay: .7, spawnIntervalStart: 1.33, spawnIntervalEnd: .75,
+    firstSpawnDelay: .7, spawnIntervalStart: 2.0, spawnIntervalEnd: 1.3,
     largeProbability: .18, maxObjects: 14,
     speedMin: 100, speedMax: 140, largeSpeedFactor: .75,
     normalSizeMin: 76, normalSizeMax: 86, largeSizeMin: 116, largeSizeMax: 126,
