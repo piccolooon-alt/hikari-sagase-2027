@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#081021" />
+<meta name="color-scheme" content="dark" />
+<title>光をさがせ！in水袋公園by寺子屋すずらん｜2027 公開確認版</title>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/app.css"></head><body>
+<noscript>この確認版を遊ぶには JavaScript を有効にしてください。</noscript>
+<main class="app" aria-label="光をさがせ！ 画面確認版">
+  <section id="loading" class="screen active" aria-label="起動画面">
+    <div class="load-logo"><div class="main-title"><span class="shine">光</span>をさがせ！</div><div class="load-sub">in水袋公園</div><div class="load-by">by寺子屋すずらん</div></div>
+    <div class="load-msg">ぼうけんのじゅんび中…</div>
+  </section>
+  <section id="welcome" class="screen" aria-label="はじめの画面">
+    <img class="art" src="assets/backgrounds/welcome_background_no_buttons.png" alt="" />
+    <button id="btn-start" class="imgbutton welcome-start" aria-label="ぼうけんをはじめる！"><img src="assets/buttons/start_button_original.png" alt="ぼうけんをはじめる！"></button>
+    <button class="imgbutton welcome-howto" aria-label="あそびかたを見る" data-open-howto="true"><img src="assets/buttons/how_to_play_original.png" alt="あそびかたを見る"></button>
+  </section>
+  <section id="home" class="screen" aria-label="冒険ホーム画面">
+    <img class="art" src="assets/backgrounds/home_fixed_1861.png" alt="" />
+    <div class="daylabel" id="daylabel"><span data-day-label>1日目のぼうけん</span></div>
+    <div class="orb-row" role="group" aria-label="4色の光の発見状況（見本）">
+      <button class="orb-button" style="--orb:#ff697d" data-orb="0" aria-label="あかの光、さがし中"><span class="orb"></span><span class="orb-label">あかの光</span><span class="orb-status">さがし中</span></button>
+      <button class="orb-button" style="--orb:#5cb8ff" data-orb="1" aria-label="あおの光、さがし中"><span class="orb"></span><span class="orb-label">あおの光</span><span class="orb-status">さがし中</span></button>
+      <button class="orb-button" style="--orb:#ffd35e" data-orb="2" aria-label="きいろの光、さがし中"><span class="orb"></span><span class="orb-label">きいろの光</span><span class="orb-status">さがし中</span></button>
+      <button class="orb-button" style="--orb:#f3f2ff" data-orb="3" aria-label="しろの光、さがし中"><span class="orb"></span><span class="orb-label">しろの光</span><span class="orb-status">さがし中</span></button>
+    </div>
+    <button class="imgbutton qr-btn" id="home-qr-scan" aria-label="光のQRをよみとる"><img src="assets/buttons/scan_qr_preview.png" alt="光のQRをよみとる"></button>
+    <button class="imgbutton hint-btn" id="home-hintbook" aria-label="ヒント帳をみる"><img src="assets/buttons/hint_book_preview.png" alt="ヒント帳をみる"></button>
+    <button class="imgbutton shop-btn" id="home-shops" aria-label="おすすめのお店をみる"><img src="assets/buttons/recommended_shops_preview.png" alt="おすすめのお店をみる"></button>
+    <button class="imgbutton help-btn" data-open-howto="true" aria-label="あそびかたを見る"><img src="assets/buttons/how_to_play_original.png" alt="あそびかたを見る"></button>
+  </section>
+
+  <section id="scan" class="screen" aria-label="光のQRをよみとる">
+    <img class="art" src="assets/backgrounds/home_fixed_1861.png" alt="">
+    <div class="scan-layout">
+      <div class="qr-top"><button id="scan-back" class="qr-back">‹ もどる</button><span class="qr-day"><span data-day-label>1日目のぼうけん</span></span></div>
+      <h1 class="qr-head">光のQRをよみとろう！</h1>
+      <p class="qr-guide">本番では光のQRコードを<br>しかくの中に合わせてね ✨</p>
+      <div class="qr-viewport" id="qr-viewport">
+
+        <div class="qr-view-icon"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M8 26V9h17M39 9h17v17M8 39v17h17M39 56h17V39"/><path d="M20 20h9v9h-9zM36 20h9v9h-9zM20 36h9v9h-9z"/><path d="M36 36h5m-5 6h9"/></svg><span>QR画面のデザイン確認中</span></div>
+        <i class="qr-corner qr-tl"></i><i class="qr-corner qr-tr"></i><i class="qr-corner qr-bl"></i><i class="qr-corner qr-br"></i>
+      </div>
+      <div class="scan-status" id="scan-status" role="status" aria-live="polite">確認版：カメラ・実際のQR読取は使いません</div>
+      <button id="scan-demo" class="scan-action">おためし：赤い光を発見する ✨</button>
+      <p class="qr-fallback">これは読み取り画面のデモです。<br>受付スクリーン・ほかのスマホとは連動しません。</p>
+      <div class="demo-color-buttons" role="group" aria-label="ほかの色をテスト"><button data-demo-color="blue">あおを試す</button><button data-demo-color="yellow">きいろを試す</button><button data-demo-color="white">しろを試す</button></div>
+    </div>
+  </section>
+  <section id="discovered" class="screen" aria-label="光を発見した画面">
+    <img class="art" src="assets/backgrounds/home_fixed_1861.png" alt="">
+    <div class="found-layout">
+      <h1 class="found-head">✨ 光をみつけた！ ✨</h1>
+      <div id="found-orb" class="found-orb" aria-hidden="true"></div>
+      <h2 id="found-name" class="found-name">あかの光</h2>
+      <p class="found-message">すごい！光を発見したね！<br>つぎはミニゲームの画面を見てみよう！</p>
+      <button id="found-play" class="found-primary">赤の画面素材をみる ›</button>
+      <button id="found-hint" class="found-secondary">次の冒険者へヒントをのこす</button>
+      <button id="found-home" class="found-secondary">ホームにもどる</button>
+      <p class="found-note">※ 確認版の発見デモです。クリアや提灯の点灯はありません。<br>本番ではゲームをクリアすると提灯が灯る予定です。</p>
+    </div>
+  </section>
+
+
+  <section id="howtopage" class="screen" aria-label="あそびかたを見る画面">
+    <div class="howto-scroll">
+      <div class="howto-header"><button type="button" id="howto-back" class="howto-back">‹ もどる</button><span class="howto-day">光をさがせ！</span></div>
+      <div class="howto-main">
+        <h1 class="howto-heading">✨ あそびかた ✨</h1>
+        <p class="howto-tagline">水袋公園で、4つの光をさがす<br>ぼうけんに出かけよう！</p>
+        <div class="howto-dots" aria-label="あか、あお、きいろ、しろの4つの光"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="howto-steps">
+        <div class="howto-step"><div class="howto-number">1</div><div class="howto-copy"><p class="howto-stepname">受付のQRでスタート！</p><p class="howto-stepdesc">スマホで読み取ったら、ぼうけんのはじまり！</p></div></div>
+        <div class="howto-step"><div class="howto-number">2</div><div class="howto-copy"><p class="howto-stepname">4色の光をさがそう！</p><p class="howto-stepdesc">公園を探検しよう。こまったら「ヒント帳」を見てね。</p></div></div>
+        <div class="howto-step"><div class="howto-number">3</div><div class="howto-copy"><p class="howto-stepname">光のQRをよみとろう！</p><p class="howto-stepdesc">見つけた光のQRを読むと、ミニゲームにちょうせんできるよ！</p></div></div>
+        <div class="howto-step"><div class="howto-number">4</div><div class="howto-copy"><p class="howto-stepname">クリアで提灯がともる！</p><p class="howto-stepdesc">ミニゲームをクリアすると、<strong>寺子屋すずらんの受付スクリーン</strong>に提灯がひとつ灯るよ🏮</p></div></div>
+      </div>
+      <div class="howto-bonus">
+        <h2 class="howto-bonus-title">もっと楽しもう！</h2>
+        <div class="howto-bonus-row"><span class="howto-bonus-emoji">📖</span><span><strong>ヒントのリレー</strong><br>光を見つけたら、次の子にヒントを残せるよ。正解は書かないでね。</span></div>
+        <div class="howto-bonus-row"><span class="howto-bonus-emoji">🎪</span><span><strong>おすすめのお店</strong><br>気に入った屋台やブースを、みんなに教えよう。買わなくてもOK！</span></div>
+      </div>
+      <p class="hint-demo-warning">※ これは公開確認版です。実際のQR読取・本番ゲーム・<br>他の端末への共有・受付の提灯連動はまだありません。</p>
+      <p class="howto-safe">🌿 歩きながらスマホを見ないでね。<br>あぶないところには入らず、楽しく探検しよう！</p>
+      <button type="button" class="howto-cta" id="howto-finish">ぼうけんに出発！ ›</button>
+    </div>
+  </section>
+  <section id="posthint" class="screen" aria-label="ヒントをのこす画面">
+    <div class="hint-layout">
+      <div class="hint-top"><button type="button" class="hint-back" id="hint-back">‹ もどる</button><span class="hint-day"><span data-day-label>1日目のぼうけん</span></span></div>
+      <h1 class="hint-heading">次の冒険者へ<br>ヒントをのこそう！ ✨</h1>
+      <div class="hint-colorline"><span id="hint-color-orb" class="hint-tinge" aria-hidden="true"></span><span id="hint-color-name" class="hint-colorname">あかの光</span></div>
+      <p class="hint-instruction">見つけた光の場所について、<br>ヒントを考えてみよう！</p>
+      <p class="hint-advice">🔑 こたえをそのまま書かないでね！</p>
+      <div class="hint-compose">
+        <label for="hint-input" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">次の冒険者へのヒント</label>
+        <textarea class="hint-textarea" id="hint-input" maxlength="60" rows="4" placeholder="たとえば『大きな木が目印かも！』" autocomplete="off" spellcheck="false"></textarea>
+        <span id="hint-count" class="hint-count">0 / 60</span>
+      </div>
+      <p class="hint-notice">場所をずばり教えないでね。<br>自分やほかの人の名前も書かないでね。</p>
+      <p id="hint-error" class="hint-error" role="status" aria-live="polite"></p>
+      <button type="button" id="hint-submit" class="hint-submit" disabled>✨ ヒントをのこす（おためし）</button>
+      <button type="button" id="hint-skip" class="hint-skip">ヒントを書かずにもどる</button>
+      <p class="hint-demo-warning">※ これは画面確認版。ほかの人には送信されません。</p>
+    </div>
+  </section>
+  <section id="hintsent" class="screen" aria-label="ヒントを書いたあとの画面">
+    <div class="hint-layout" style="justify-content:center">
+      <div class="hint-success-icon" aria-hidden="true">💌</div>
+      <h1 class="hint-success-heading">ヒントをのこしたよ！</h1>
+      <p class="hint-success-text">次の冒険者のためのヒント、<br>ありがとう！ 💫</p>
+      <div class="hint-written" id="hint-written"></div>
+      <button type="button" id="hint-openbook" class="hint-submit">📖 ヒント帳をみる</button>
+      <button type="button" id="hint-after-found" class="found-secondary">発見画面にもどる</button>
+      <p class="hint-demo-warning">※ このヒントは今のスマホ内だけのテスト記録です。</p>
+    </div>
+  </section>
+  <section id="hintbook" class="screen" aria-label="みんなのヒント帳">
+    <div class="hint-layout">
+      <div class="hint-top"><button type="button" id="hintbook-back" class="hint-back">‹ もどる</button><span class="hint-day"><span data-day-label>1日目のぼうけん</span></span></div>
+      <h1 class="hint-heading">📖 みんなのヒント帳</h1>
+      <p class="hint-instruction">光をさがすときの参考にしてね。<br>場所を教えすぎないヒントが集まるよ。</p>
+      <label class="day-selector" for="hint-day">ヒント帳の日にち <select id="hint-day"><option value="1">1日目（8月7日）</option><option value="2">2日目（8月8日）</option></select></label>
+      <div class="hint-book-tabs">
+        <button class="hint-book-tab active" data-hint-tab="red">🔴 あか</button>
+        <button class="hint-book-tab" data-hint-tab="blue">🔵 あお</button>
+        <button class="hint-book-tab" data-hint-tab="yellow">🟡 きいろ</button>
+        <button class="hint-book-tab" data-hint-tab="white">⚪ しろ</button>
+      </div>
+      <div id="hintbook-list" class="hint-book-list" aria-live="polite"></div>
+      <p class="hint-demo-warning">※ 確認版では、今のスマホで入力したヒントだけを表示します。ほかの参加者とはまだ共有されません。</p>
+    </div>
+  </section>
+
+  <section id="shops" class="screen" aria-label="おすすめのお店一覧">
+    <div class="shop-view">
+      <div class="shop-top"><button class="shop-back" id="shops-back">‹ もどる</button><span class="shop-day"><span data-day-label>1日目のぼうけん</span></span></div>
+      <div class="shop-scroll" id="shops-scroll">
+        <h1 class="shop-heading"><span class="shop-mark">▤</span> おすすめのお店</h1>
+        <div class="shop-heading-line"></div>
+        <p class="shop-subtitle">スタンプとひとことを見て、<br>お店やブースをまわってみよう！</p>
+        <div id="shop-toast" class="shop-toast" role="status">✨ おすすめをのこしたよ！</div>
+        <div id="shop-list" class="shop-list" aria-live="polite"></div>
+        <p class="shop-note">※ 画面確認版：このスマホで入力したおすすめだけを表示します。ほかの人には共有されません。</p>
+      </div>
+      <div class="shop-footer">
+        <button id="shop-open-compose" class="shop-primary">✨ おすすめをのこす ›</button>
+        <button id="shops-home" class="shop-underlink">ホームにもどる ›</button>
+      </div>
+    </div>
+  </section>
+  <section id="shopcompose" class="screen" aria-label="おすすめのお店を投稿">
+    <div class="shop-view">
+      <div class="shop-top"><button id="shopcompose-back" class="shop-back">‹ もどる</button><span class="shop-day"><span data-day-label>1日目のぼうけん</span></span></div>
+      <div class="shop-scroll" id="shopcompose-scroll">
+        <h1 class="shop-heading"><span class="shop-mark">♡</span> おすすめをのこそう！</h1>
+        <div class="shop-heading-line"></div>
+        <p class="shop-subtitle">気に入ったお店やブースを、<br>次の冒険者へ教えてあげよう！</p>
+        <label for="shop-name" class="shop-input-label">✦ お店の名前</label>
+        <input id="shop-name" class="shop-input" type="text" maxlength="30" autocomplete="off" placeholder="例：やきそば屋さん" />
+        <fieldset class="stamp-field"><legend class="shop-input-label">✦ スタンプをひとつ</legend>
+          <div class="stamp-options">
+            <label><input type="radio" name="shop-stamp" value="✨" checked><span>✨</span><span class="sr-only">きらきら</span></label>
+            <label><input type="radio" name="shop-stamp" value="💕"><span>💕</span><span class="sr-only">ハート</span></label>
+            <label><input type="radio" name="shop-stamp" value="🎉"><span>🎉</span><span class="sr-only">おいわい</span></label>
+            <label><input type="radio" name="shop-stamp" value="🌟"><span>🌟</span><span class="sr-only">おほしさま</span></label>
+          </div>
+        </fieldset>
+        <label for="shop-comment" class="shop-input-label">♡ ひとことコメント</label>
+        <textarea id="shop-comment" class="shop-comment" maxlength="60" placeholder="例：ソースのいいにおいがしたよ！"></textarea>
+        <div class="shop-counter" id="shop-charcount">0 / 60</div>
+        <p class="shop-note">自分やほかの人の名前など、個人情報は書かないでね。</p>
+        <div id="shop-error" class="shop-error" role="alert"></div>
+        <button id="shop-submit" type="button" class="shop-primary" disabled>✨ おすすめをのこす（おためし）</button>
+        <p class="shop-note">※ 今は確認版です。おすすめはこのスマホ内だけに保存されます。ほかの参加者には公開されません。</p>
+      </div>
+      <div class="shop-footer"><button id="shop-compose-cancel" class="shop-underlink">書かずに一覧にもどる</button></div>
+    </div>
+  </section>
+  <section id="shopdetail" class="screen" aria-label="おすすめの詳細">
+    <div class="shop-view">
+      <div class="shop-top"><button id="shopdetail-back" class="shop-back">‹ もどる</button><span class="shop-day">おすすめのお店</span></div>
+      <div class="shop-scroll">
+        <h1 class="shop-heading">✨ みんなのおすすめ</h1><div class="shop-heading-line"></div>
+        <div class="shop-detail-card">
+          <div id="shop-detail-stamp" class="shop-detail-stamp" aria-label="選んだスタンプ"></div>
+          <h2 id="shop-detail-name" class="shop-detail-name"></h2>
+          <p id="shop-detail-comment" class="shop-detail-comment"></p>
+        </div>
+        <p class="shop-detail-badge">※ あなたのスマホだけにあるテスト投稿です。</p>
+      </div>
+      <div class="shop-footer"><button id="shopdetail-back-bottom" class="shop-primary">おすすめ一覧にもどる ›</button></div>
+    </div>
+  </section>
+
+  <div class="modal-wrap" id="modalwrap" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><h2 id="modal-title"></h2><div id="modal-body"></div><button class="close-btn" id="close-modal">もどる</button></div></div>
+
+  <!-- 採用済みの第1曲。ユーザー操作を受けて再生します。 -->
+  <audio id="suzuran-bgm" loop preload="none" playsinline src="assets/audio/four_lights_of_suzuran.mp3" aria-label="すずらんの冒険BGM"></audio>
+  <button id="bgm-toggle" type="button" aria-label="BGMを再生する" title="BGMを再生する" hidden>♪</button>
+
+<section id="red-preview" class="screen" aria-label="赤の水風船ヨーヨーよけ 素材確認">
+  <img class="art" src="assets/backgrounds/red_game_fixed_1918.png" alt="">
+  <div class="red-preview-header"><button id="red-preview-back" class="qr-back">‹ もどる</button><span class="red-preview-badge">画面素材確認モード</span></div>
+  <h1 class="red-preview-title">水風船ヨーヨーよけ</h1>
+  <div class="yoyo-layer" aria-hidden="true">
+    <img class="falling-yoyo yoyo-1" src="assets/red-game/yoyos/yoyo_01.png" alt="">
+    <img class="falling-yoyo yoyo-2" src="assets/red-game/yoyos/yoyo_02.png" alt="">
+    <img class="falling-yoyo yoyo-3" src="assets/red-game/yoyos/yoyo_03.png" alt="">
+    <img class="falling-yoyo yoyo-4" src="assets/red-game/yoyos/yoyo_04.png" alt="">
+    <img class="falling-yoyo yoyo-5" src="assets/red-game/yoyos/yoyo_05.png" alt="">
+    <img class="falling-yoyo yoyo-6" src="assets/red-game/yoyos/yoyo_06.png" alt="">
+  </div>
+  <div class="red-character-zone" id="red-character-zone" role="group" aria-label="浴衣の子の位置を確認">
+    <img id="red-character" src="assets/red-game/approved_yukata_character.png" alt="採用済みの明るい水色の浴衣の女の子" draggable="false">
+  </div>
+  <div class="red-preview-footer">
+    <p>背景・ヨーヨー・浴衣の子の見た目を確認しよう。<br>ルール・難しさ・ライフ数はこれから相談します。</p>
+    <div class="red-preview-controls"><button id="red-left" aria-label="浴衣の子を左へ">‹ 左へ</button><button id="red-motion" aria-pressed="false">ヨーヨーをとめる</button><button id="red-right" aria-label="浴衣の子を右へ">右へ ›</button></div>
+    <p class="red-preview-note">指で左右に動かせます。得点・当たり判定・クリアはありません。</p>
+  </div>
+</section>
+<div class="preview-label" aria-label="公開確認版">公開確認版</div>
+</main>
+<script src="js/demo-store.js"></script>
+<script src="js/app.js"></script>
+</body></html>

@@ -1,0 +1,13 @@
+{
+  "name": "hikari-sagase-2027",
+  "version": "0.1.0",
+  "private": true,
+  "description": "光をさがせ！ 2027 GitHub Pages 公開確認版（ビルド不要）",
+  "scripts": {
+    "test": "node tests/smoke.cjs",
+    "start": "python3 -m http.server 8000 --bind 127.0.0.1"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
