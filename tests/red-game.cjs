@@ -191,4 +191,25 @@ run('active hazards are capped and offscreen objects are removed', () => {
   assert.ok(!game.state.yoyos.some(yoyo => yoyo.id === object.id), 'departed hazards do not accumulate');
 });
 
+
+run('gentler defaults reduce incoming hazards without changing the 30-second three-heart challenge', () => {
+  const tuned = createGame({ random: random(2027), config: { lives: 1000 } });
+  const previous = createGame({
+    random: random(2027),
+    config: { lives: 1000, spawnIntervalStart: 1.18, spawnIntervalEnd: .64, speedMin: 112, speedMax: 160 }
+  });
+  assert.equal(tuned.config.duration, 30);
+  assert.equal(tuned.config.speedMin, 100);
+  assert.equal(tuned.config.speedMax, 140);
+  assert.equal(tuned.config.lives, previous.config.lives);
+  assert.equal(tuned.config.invulnerability, previous.config.invulnerability);
+  assert.equal(tuned.config.largeProbability, previous.config.largeProbability);
+  tuned.start(); previous.start();
+  advance(tuned, 30); advance(previous, 30);
+  assert.equal(tuned.state.status, 'won');
+  assert.equal(previous.state.status, 'won');
+  assert.ok(tuned.state.spawned < previous.state.spawned, 'fewer yoyos should appear in a normal round');
+});
+
+
 console.log(`${passed} red-game model scenarios passed.`);
