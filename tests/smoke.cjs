@@ -80,10 +80,50 @@ function diagnostics(page, origin) {
   return () => assert.deepEqual(problems, [], 'page errors or resource/network failures');
 }
 
+async function observeGame(context, seed = null) {
+  // Read the actual model used by the controller. No game state/configuration is changed.
+  // This instrumentation exists only in the browser test, not in the shipped app.
+  await context.addInitScript(initialSeed => {
+    let api;
+    Object.defineProperty(window, 'HikariRedModel', {
+      configurable: true,
+      get() { return api; },
+      set(value) {
+        api = { ...value, createGame(...args) {
+          const game = value.createGame(...args);
+          window.__redGameUnderTest = game;
+          return game;
+        } };
+      }
+    });
+    if (initialSeed !== null) {
+      let value = initialSeed >>> 0;
+      Math.random = () => { value = (Math.imul(value, 1664525) + 1013904223) >>> 0; return value / 4294967296; };
+    }
+  }, seed);
+}
+
+async function gameStatus(page, expected) {
+  await page.waitForFunction(value => window.__redGameUnderTest?.state.status === value, expected);
+}
+
+async function pointerMovePlayer(page, logicalX, { drag = false } = {}) {
+  const position = await page.evaluate(() => {
+    const state = window.__redGameUnderTest.state;
+    const box = document.querySelector('#red-arena').getBoundingClientRect();
+    return { x: box.x + state.player.x / 360 * box.width, y: box.y + state.player.y / state.height * box.height, left: box.x, width: box.width };
+  });
+  await page.mouse.move(position.x, position.y);
+  await page.mouse.down();
+  await page.mouse.move(position.left + logicalX / 360 * position.width, position.y, { steps: drag ? 8 : 1 });
+  await page.mouse.up();
+}
+
 async function mobileFlow(browser, base, viewport) {
-  // UA and touch profiles exercise responsive handling; the engine remains Chromium.
+  // UA and touch profiles exercise responsive handling in the selected browser engine.
   const profile = viewport.width === 360 ? playwright.devices['Pixel 5'] : playwright.devices['iPhone 13'];
   const context = await browser.newContext({ viewport, userAgent: profile.userAgent, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+  await observeGame(context);
   await context.addInitScript(() => {
     window.__privacyCalls = [];
     if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = () => { window.__privacyCalls.push('camera'); throw new Error('Camera must not be requested'); };
@@ -125,32 +165,50 @@ async function mobileFlow(browser, base, viewport) {
       assert.equal(await page.locator('input[type="file"]').count(), 0);
       await snapshot(page, `${width}-scan`);
     });
-    await run(`${width}px BGM continuity, red materials and local discovery`, async () => {
+    await run(`${width}px playable red game, controls, pause and BGM continuity`, async () => {
       await page.waitForFunction(() => !document.querySelector('#suzuran-bgm').paused && document.querySelector('#suzuran-bgm').currentTime > 0);
-      const before = await page.locator('#suzuran-bgm').evaluate(audio => audio.currentTime);
+      assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'), 'common');
       await page.locator('#scan-demo').click(); await active(page, 'discovered');
       assert.equal(await page.locator('#found-name').innerText(), 'あかの光');
       await snapshot(page, `${width}-discovered`);
+      const commonPosition = await page.locator('#suzuran-bgm').evaluate(audio => audio.currentTime);
       await page.locator('#found-play').click(); await active(page, 'red-preview');
-      assert.equal(await page.locator('.falling-yoyo').count(), 6);
+      await page.waitForFunction(() => document.querySelector('#suzuran-bgm').currentSrc.endsWith('/summer_yoyo_matsuri.mp3') && !document.querySelector('#suzuran-bgm').paused);
+      assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'), 'red');
+      const redPosition = await page.locator('#suzuran-bgm').evaluate(audio => audio.currentTime);
+      assert.equal(await page.locator('#red-sprite-assets img').count(), 6);
+      const sources = await page.locator('#red-sprite-assets img').evaluateAll(images => images.map(image => image.getAttribute('src')));
+      for (const name of ['red', 'blue', 'yellow', 'green', 'purple', 'pink']) assert.ok(sources.some(source => source.endsWith(`/yoyo_${name}.png`)));
       assert.match(await page.locator('#red-character').getAttribute('src'), /approved_yukata_character\.png$/);
       assert.match(await page.locator('#red-preview .art').getAttribute('src'), /red_game_fixed_1918\.png$/);
-      assert.equal(await page.locator('#red-canvas,#red-time,#red-lives').count(), 0);
-      const originalX = await page.locator('#red-character').evaluate(image => image.getBoundingClientRect().x);
-      await page.locator('#red-left').click();
-      assert.ok(await page.locator('#red-character').evaluate(image => image.getBoundingClientRect().x) < originalX, 'position preview moves left');
-      await page.locator('#red-right').click();
-      await page.locator('#red-motion').click();
-      assert.equal(await page.locator('#red-motion').getAttribute('aria-pressed'), 'true');
+      assert.equal(await page.locator('#red-canvas,#red-time,#red-lives').count(), 3);
+      await gameStatus(page, 'ready');
+      await page.locator('#red-start').tap(); await gameStatus(page, 'playing');
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.lives), 3);
+      assert.ok(parseFloat(await page.locator('#red-time').innerText()) <= 30);
+      const originalX = await page.evaluate(() => window.__redGameUnderTest.state.player.x);
+      await page.locator('#red-left').tap();
+      await page.waitForFunction(x => window.__redGameUnderTest.state.player.x < x - 5, originalX);
+      await pointerMovePlayer(page, 250, { drag: true });
+      await page.waitForFunction(() => window.__redGameUnderTest.state.player.x > 210);
+      await page.keyboard.press('ArrowLeft');
+      await page.locator('#red-pause').tap(); await gameStatus(page, 'paused');
+      const pausedElapsed = await page.evaluate(() => window.__redGameUnderTest.state.elapsed);
+      await page.evaluate(() => new Promise(resolve => { let frames = 0; function tick() { if (++frames === 4) resolve(); else requestAnimationFrame(tick); } requestAnimationFrame(tick); }));
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.elapsed), pausedElapsed, 'paused game does not consume time');
+      await page.locator('#red-resume').tap(); await gameStatus(page, 'playing');
       await snapshot(page, `${width}-red`);
       assert.equal(await page.locator('#suzuran-bgm').evaluate(audio => audio.paused), false);
-      await page.waitForFunction(time => document.querySelector('#suzuran-bgm').currentTime > time, before);
+      await page.waitForFunction(time => document.querySelector('#suzuran-bgm').currentTime > time, redPosition);
       await page.locator('#bgm-toggle').click();
       assert.equal(await page.locator('#suzuran-bgm').evaluate(audio => audio.paused), true);
       await page.locator('#red-preview-back').click(); await active(page, 'discovered');
+      assert.notEqual(await page.evaluate(() => window.__redGameUnderTest.state.status), 'playing', 'leaving the red screen stops the game');
+      assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'), 'common');
       assert.equal(await page.locator('#suzuran-bgm').evaluate(audio => audio.paused), true, 'muted music stays muted across screens');
       await page.locator('#bgm-toggle').click();
-      await page.waitForFunction(() => !document.querySelector('#suzuran-bgm').paused);
+      await page.waitForFunction(() => !document.querySelector('#suzuran-bgm').paused && document.querySelector('#suzuran-bgm').currentSrc.endsWith('/four_lights_of_suzuran.mp3'));
+      await page.waitForFunction(position => document.querySelector('#suzuran-bgm').currentTime >= position - .2, commonPosition);
     });
     await run(`${width}px hints, day separation, safe text and reload persistence`, async () => {
       await page.locator('#found-hint').click(); await active(page, 'posthint');
@@ -204,6 +262,92 @@ async function mobileFlow(browser, base, viewport) {
       check();
     });
   } finally { await context.close(); }
+}
+
+async function redRoundFlow(browser, base) {
+  await run('real red round: six sprites, 30-second clear, body hits, loss and immediate retry', async () => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await observeGame(context, 2027);
+    const page = await context.newPage();
+    const check = diagnostics(page, new URL(base).origin);
+    try {
+      await page.goto(`${base}index.html#red`); await active(page, 'red-preview'); await resources(page);
+      await page.waitForFunction(() => !document.querySelector('#red-start').disabled);
+      await snapshot(page, '390-red-ready');
+      await page.clock.install();
+      await page.clock.pauseAt(new Date(Date.now() + 1000));
+      await page.locator('#red-start').tap();
+      const seen = new Set();
+      async function steer(seekHit) {
+        const target = await page.evaluate(wantHit => {
+          const model = window.__redGameUnderTest, state = model.state;
+          const body = window.HikariRedModel.playerBody(state.player);
+          let x = state.player.x;
+          if (wantHit) {
+            const arriving = state.yoyos.map(yoyo => {
+              const center = window.HikariRedModel.yoyoBody(yoyo);
+              const time = (body.y - center.y) / yoyo.vy;
+              return { yoyo, time };
+            }).filter(hit => hit.time >= -.1).sort((a, b) => a.time - b.time)[0];
+            if (arriving) {
+              const future = window.HikariRedModel.yoyoBody({ ...arriving.yoyo, x: arriving.yoyo.x + arriving.yoyo.vx * arriving.time, y: arriving.yoyo.y + arriving.yoyo.vy * arriving.time, angle: arriving.yoyo.angle + arriving.yoyo.spin * arriving.time });
+              x = future.x - state.player.width * .04;
+            }
+          } else {
+            let best = Infinity;
+            for (let candidate = 50; candidate <= 310; candidate += 13) {
+              let cost = Math.abs(candidate - state.player.x) * .015;
+              for (const yoyo of state.yoyos) for (let t = .1; t <= 1.5; t += .1) {
+                const future = window.HikariRedModel.yoyoBody({ ...yoyo, x: yoyo.x + yoyo.vx * t, y: yoyo.y + yoyo.vy * t, angle: yoyo.angle + yoyo.spin * t });
+                const px = state.player.x + Math.max(-model.config.playerSpeed * t, Math.min(model.config.playerSpeed * t, candidate - state.player.x)) + state.player.width * .04;
+                const gap = Math.hypot(future.x - px, future.y - body.y) - future.radius - body.radius;
+                if (gap < 18) cost += (18 - gap) ** 2 / (t + .15);
+              }
+              if (cost < best) { best = cost; x = candidate; }
+            }
+          }
+          const box = document.querySelector('#red-arena').getBoundingClientRect();
+          return { x: box.x + Math.max(50, Math.min(310, x)) / 360 * box.width, y: box.y + body.y / state.height * box.height, types: state.yoyos.map(yoyo => yoyo.type), status: state.status };
+        }, seekHit);
+        target.types.forEach(type => seen.add(type));
+        if (target.status === 'playing') await page.mouse.move(target.x, target.y);
+        return target.status;
+      }
+      const initial = await page.evaluate(() => {
+        const state = window.__redGameUnderTest.state, box = document.querySelector('#red-arena').getBoundingClientRect();
+        return { x: box.x + state.player.x / 360 * box.width, y: box.y + state.player.y / state.height * box.height };
+      });
+      await page.mouse.move(initial.x, initial.y); await page.mouse.down();
+      for (let i = 0; i < 305; i++) {
+        const status = await steer(false); if (status !== 'playing') break;
+        await page.clock.runFor(100);
+        if (i === 110) await snapshot(page, '390-red-playing');
+      }
+      await page.mouse.up();
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.status), 'won', 'ordinary inputs can finish the default 30-second round');
+      assert.deepEqual(seen, new Set(['red', 'blue', 'yellow', 'green', 'purple', 'pink']));
+      assert.equal(await page.locator('#red-time').innerText(), '0.0');
+      assert.match(await page.locator('#red-overlay-title').innerText(), /クリア/);
+      await snapshot(page, '390-red-clear');
+      assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'), 'red');
+      await page.locator('#red-retry').tap();
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.lives), 3);
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.elapsed), 0);
+      await page.mouse.move(initial.x, initial.y); await page.mouse.down();
+      for (let i = 0; i < 305; i++) {
+        const status = await steer(true); if (status !== 'playing') break;
+        await page.clock.runFor(100);
+      }
+      await page.mouse.up();
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.status), 'lost', 'actual sprite-body collisions consume all three lives');
+      assert.equal(await page.locator('#red-lives').getAttribute('data-remaining'), '0');
+      await snapshot(page, '390-red-failed');
+      await page.locator('#red-retry').tap();
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.status), 'playing');
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.lives), 3);
+      check();
+    } finally { await context.close(); }
+  });
 }
 
 async function projectorFlow(browser, base) {
@@ -278,6 +422,7 @@ async function routeRegression(browser, base) {
 async function storageUnavailable(browser, base) {
   await run('blocked storage and reduced-motion preview remain usable', async () => {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    await observeGame(context);
     await context.addInitScript(() => {
       Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Storage blocked', 'SecurityError'); } });
     });
@@ -285,7 +430,9 @@ async function storageUnavailable(browser, base) {
     const check = diagnostics(page, new URL(base).origin);
     try {
       await page.goto(`${base}index.html#red`); await active(page, 'red-preview'); await resources(page);
-      assert.equal(await page.locator('#red-motion').getAttribute('aria-pressed'), 'true');
+      await gameStatus(page, 'ready');
+      await page.locator('#red-start').click(); await gameStatus(page, 'playing');
+      await page.locator('#red-pause').click(); await gameStatus(page, 'paused');
       await page.goto(`${base}index.html#shopcompose`); await active(page, 'shopcompose');
       await page.locator('#shop-name').fill('おためし屋さん');
       await page.locator('#shop-comment').fill('きらきらしていたよ');
@@ -331,6 +478,7 @@ async function storageUnavailable(browser, base) {
       await mobileFlow(browser, base, viewport);
     }
     await routeRegression(browser, base);
+    await redRoundFlow(browser, base);
     await projectorFlow(browser, base);
     await storageUnavailable(browser, base);
     fs.writeFileSync(resultPath, JSON.stringify({ engine, browserVersion: browser.version(), passed, failed: 0, mobileWidths: [360, 390, 430], mobileProfiles: ['Android-like UA + touch', 'iPhone-like UA + touch'], note: 'Mobile profiles use the selected engine; they are not physical iOS/Android devices.' }, null, 2) + '\n');

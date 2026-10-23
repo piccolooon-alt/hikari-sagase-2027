@@ -113,5 +113,40 @@
     "path": "assets/buttons/scan_qr_preview.png",
     "sha256": "5acb983d23ca435c8f93c76043e183ac934e22163c86a5677747c51bfd23db37",
     "source": "PNG extracted unchanged from approved reference HTML; preserves existing transparent bounds"
+  },
+  {
+    "path": "assets/red-game/yoyos-v2/yoyo_blue.png",
+    "sha256": "0da606abb6370ef895f533a57a2d727854ee88c27a42525a9cd4b74ea6aa4a79",
+    "source": "user hikari_red_yoyo_6sprites_codex.zip; unchanged 600px transparent PNG"
+  },
+  {
+    "path": "assets/red-game/yoyos-v2/yoyo_green.png",
+    "sha256": "dd82d7721ceaf2c8a0ea513ebda4bfe3c80eef88a6630295820e0d9570bd94cb",
+    "source": "user hikari_red_yoyo_6sprites_codex.zip; unchanged 600px transparent PNG"
+  },
+  {
+    "path": "assets/red-game/yoyos-v2/yoyo_pink.png",
+    "sha256": "ad90779ec2447a857e1d2ff8d753f32abee7a77c205985b320480b38e8eefa8b",
+    "source": "user hikari_red_yoyo_6sprites_codex.zip; unchanged 600px transparent PNG"
+  },
+  {
+    "path": "assets/red-game/yoyos-v2/yoyo_purple.png",
+    "sha256": "31c3c4103f4fba0020f83943632ee44e341b13098a4bb9a87d2b30b8dc00eb91",
+    "source": "user hikari_red_yoyo_6sprites_codex.zip; unchanged 600px transparent PNG"
+  },
+  {
+    "path": "assets/red-game/yoyos-v2/yoyo_red.png",
+    "sha256": "f4f6be9da589d48eaedd762563e1b4e988ff758f901ca2e23cc1ecbd9ce73c60",
+    "source": "user hikari_red_yoyo_6sprites_codex.zip; unchanged 600px transparent PNG"
+  },
+  {
+    "path": "assets/red-game/yoyos-v2/yoyo_yellow.png",
+    "sha256": "327119f316cccbcb42ed758562daf885507b0904a66bb613a6f7bb0b0f9ddcc5",
+    "source": "user hikari_red_yoyo_6sprites_codex.zip; unchanged 600px transparent PNG"
+  },
+  {
+    "path": "assets/audio/summer_yoyo_matsuri.mp3",
+    "sha256": "f1d7824a26adefa836ebb7e5064c64e7a84cf98bb19ce361a5708f6dc8928785",
+    "source": "user summer_yoyo_matsuri.mp3 attachment; unchanged"
   }
 ]
