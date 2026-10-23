@@ -40,7 +40,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 公開対象は **`piccolooon-alt/hikari-sagase-2027` だけ**です。過去のゲーム用リポジトリは操作しません。
 
-1. 制作用ブランチのPull Requestを確認し、`main` にマージします。
+1. 制作用ブランチのPull Requestを確認し、`main` にマージします。Draftの場合は、確認後に **Ready for review** を押してからマージします。
 2. このリポジトリの **Settings → Pages** を開きます。
 3. **Build and deployment → Source** を **Deploy from a branch** にします。
 4. **Branch** を **main**、フォルダーを **/ (root)** にして **Save** を押します。
@@ -68,9 +68,11 @@ npm test
 
 既存の `/usr/bin/chromium` があればそれを使います。別の実行ファイルは `CHROMIUM_PATH` で指定できます。テスト用パッケージは開発時だけ必要で、サイトのビルド・公開には不要です。テストは `/hikari-sagase-2027/` のサブパスで一時サーバーを起動し、終了時に停止します。
 
-今回、Chromium 154で**15シナリオすべて成功**しました。Android／iPhone相当のUA・タッチ設定で幅360／390／430px、受付画面1920×1080とスマホ幅を確認しました。実行結果・スクリーンショットは `tests/artifacts/` に出力します。レビュー用の画面と詳しい結果は [検証記録](docs/VALIDATION.md) にあります。
+今回、Chromium 154とWebKit 26.5で**各15シナリオ、計30すべて成功**しました。Android／iPhone相当のUA・タッチ設定で幅360／390／430px、受付画面1920×1080とスマホ幅を確認しました。実行結果・スクリーンショットは `tests/artifacts/` に出力します。レビュー用の画面と詳しい結果は [検証記録](docs/VALIDATION.md) にあります。
 
-実際のSafari／WebKitエンジン・Android／iPhone実機・GitHub Pages公開後の確認は未実施です。このクラウド環境ではWebKit配布先への通信がHTTP403で拒否されました。iPhone相当のUA設定も、今回の実行エンジンはChromiumです。
+WebKitは、公式のPlaywrightブラウザーと検証済みの実行ライブラリを使って確認しました。通常の開発環境では `npx playwright install --with-deps webkit` 後に `BROWSER=webkit npm test` で実行できます。明示的な実行ファイルの指定は `WEBKIT_EXECUTABLE_PATH` に対応しています。
+
+Android／iPhone実機、Safariアプリ自体、GitHub Pages公開後の確認は未実施です。今回のエミュレーションは実機の画面・音声出力を保証するものではありません。
 
 ## ファイル構成
 

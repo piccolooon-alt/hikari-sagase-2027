@@ -7,8 +7,8 @@
 - 実QR読み取り、GPS、外部DB接続、写真アップロードなし。過去のゲーム用リポジトリは変更なし。
 - READMEにGitHub Pagesの設定手順、予定URL、未実装機能を記載。公開はマージ後にリポジトリのPages設定から行います。
 
-検証：`npm ci` 後の `npm test` で15シナリオ成功。Chromium 154、幅360／390／430pxのタッチ操作、受付1920×1080、実素材・フォント・BGM読込、日別の保存、再読込・戻る操作、保存不可時、外部通信なしを確認しました。画像の原本・参考HTMLから抽出したボタンもハッシュ照合済みです。
+検証：Chromium 154とWebKit 26.5で各15シナリオ、計30成功。幅360／390／430pxのタッチ操作、受付1920×1080、実素材・フォント・BGM読込、日別の保存、再読込・戻る操作、保存不可時、外部通信なしを確認しました。画像の原本・参考HTMLから抽出したボタンもハッシュ照合済みです。
 
 レビュー用画面：[検証記録とスクリーンショット](https://github.com/piccolooon-alt/hikari-sagase-2027/blob/feat/2027-pages-preview/docs/VALIDATION.md)。
 
-実際のSafari／WebKit・実機の音声出力と、GitHub Pages上での到達確認は未実施です。WebKit配布先は環境の通信制限で拒否されました。PagesはPR確認・マージ後に `Settings → Pages → Deploy from a branch → main / (root)` で公開できます。
+Android／iPhone実機・Safariアプリ自体の表示や音声出力と、GitHub Pages上での到達確認は未実施です。PagesはPR確認・マージ後に `Settings → Pages → Deploy from a branch → main / (root)` で公開できます。

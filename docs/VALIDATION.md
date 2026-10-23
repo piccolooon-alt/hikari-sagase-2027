@@ -6,7 +6,8 @@
 
 - `npm ci --ignore-scripts --no-audit --no-fund --cache /tmp/hikari-npm-cache`：固定ロックファイルによるテスト依存関係のインストール。
 - `npm test`：Playwright 1.62.1＋Chromium 154.0.8037.57、15シナリオ成功、失敗0。
-- スマホは360×800、390×844、430×932。タッチ操作とAndroid／iPhone相当のUA設定を使用。全て実際のエンジンはChromium。
+- `BROWSER=webkit PLAYWRIGHT_BROWSERS_PATH=/workspace/scratch/pw-browsers WEBKIT_EXECUTABLE_PATH=/workspace/scratch/pw-browsers/webkit-2336/pw_run.sh npm test`：WebKit 26.5、同じ15シナリオ成功、失敗0。両エンジン計30シナリオ成功。
+- スマホは360×800、390×844、430×932。タッチ操作とAndroid／iPhone相当のUA設定を使用。各エンジンで同じサイズを検証。
 - 受付は1920×1080およびスマホ幅。ステージの比率が16:9で、4隅が赤・白・黄・青の指定位置にあることを確認。
 - 各HTMLのID重複なし、相対参照の存在、JavaScript構文、`git diff --check` を確認。
 - 添付素材20ファイルと参考HTMLから抽出したボタン3ファイルのSHA-256を確認。背景・キャラクター・音源の原本を変更していない。
@@ -43,9 +44,20 @@
 
 ![受付スクリーンの固定背景・カウント・星くず](screenshots/projector-1920.png)
 
+WebKitでも、同じ画像・配置を確認しました。
+
+| WebKitの冒険ホーム | WebKitの赤の素材確認 |
+| --- | --- |
+| ![WebKitでの冒険ホーム](screenshots/webkit-home-390.png) | ![WebKitでの赤の素材確認](screenshots/webkit-red-390.png) |
+
+## WebKitの検証環境
+
+配布先への通信制限が解消した後、Playwright公式配布のWebKit 2336を取得しました。Linux用ライブラリは署名検証済みDebian trixie配布元から取得し、チェックサムを検証したパッケージをブラウザー内の `sys/lib` へ展開しています。システムのファイルや、公式ブラウザー・Playwright本体・起動ラッパーは変更していません。
+
+隔離環境のシステム `ldconfig` キャッシュにローカルライブラリが載らないため、上記コマンドではPlaywrightの標準 `executablePath` 設定で同じ公式起動ファイルを指定しています。実行ファイル・共有ライブラリ63ファイルの `ldd` と `libGLESv2` の実ロードで依存解決を確認し、その上で画面・音声を含む機能テストを実施しました。パッケージ署名・チェックサム・TLS検証の無効化はしていません。
+
 ## まだ確認していないこと
 
-- Safari／WebKitエンジン：公式配布先 `cdn.playwright.dev` と `playwright.download.prss.microsoft.com` がHTTP403 `Domain forbidden` で取得不可。失敗したアプリのテストを合格に置き換えたものではなく、エンジン自体を導入できていません。
-- Android／iPhone実機の画面・音声出力、屋外通信、実際の受付スクリーンでの色・明るさ。
+- Android／iPhone実機・Safariアプリ自体の画面や音声出力、屋外通信、実際の受付スクリーンでの色・明るさ。
 - GitHub Pages上での表示・HTTPSでの到達。公開手順はREADMEを参照してください。
 - 実QR・本番ゲーム・クラウド共有・提灯の本番連動は実装対象外のため動作確認していません。GPS・写真アップロード・本番DB接続もありません。

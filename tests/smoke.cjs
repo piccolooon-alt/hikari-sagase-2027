@@ -48,11 +48,10 @@ async function run(name, callback) {
   catch (error) { error.message = `${name}: ${error.message}`; throw error; }
 }
 async function active(page, id) {
-  await page.waitForFunction(target => { const active = document.querySelector('.screen.active'); return active?.id === target && getComputedStyle(active).opacity === '1'; }, id);
+  await page.waitForFunction(target => { const active = document.querySelector('.screen.active'); return active?.id === target && getComputedStyle(active).opacity === '1' && active.getAttribute('aria-hidden') === 'false'; }, id);
   // Let visibility inheritance reach newly displayed children, including reduced-motion transitions.
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  if (id !== 'loading') await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   assert.equal(await page.locator('.screen.active').count(), 1);
-  assert.equal(await page.locator(`#${id}`).getAttribute('aria-hidden'), 'false');
 }
 async function resources(page) {
   await page.evaluate(async () => {
@@ -98,7 +97,7 @@ async function mobileFlow(browser, base, viewport) {
   const width = viewport.width;
   try {
     await run(`${width}px startup, original home and help navigation`, async () => {
-      await page.goto(base);
+      await page.goto(base, { waitUntil: 'domcontentloaded' });
       await active(page, 'loading');
       await active(page, 'welcome');
       await resources(page);
@@ -322,6 +321,10 @@ async function storageUnavailable(browser, base) {
       const system = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
       if (fs.existsSync(system)) options.executablePath = system;
       options.args = ['--no-sandbox'];
+    }
+    if (engine === 'webkit' && process.env.WEBKIT_EXECUTABLE_PATH) {
+      assert.ok(fs.existsSync(process.env.WEBKIT_EXECUTABLE_PATH), 'WebKit executable must exist');
+      options.executablePath = process.env.WEBKIT_EXECUTABLE_PATH;
     }
     browser = await playwright[engine].launch(options);
     for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }]) {
