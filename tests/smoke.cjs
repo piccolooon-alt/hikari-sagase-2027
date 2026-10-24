@@ -264,6 +264,51 @@ async function mobileFlow(browser, base, viewport) {
   } finally { await context.close(); }
 }
 
+async function dayTwoLightFlow(browser, base) {
+  await run('day-two red game: three caught lights, gentle celebration, retry and day-one isolation', async () => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await observeGame(context, 2027);
+    const page = await context.newPage(), check = diagnostics(page, new URL(base).origin);
+    try {
+      await page.goto(`${base}index.html?day=2#red`); await active(page, 'red-preview'); await resources(page);
+      await page.waitForFunction(() => !document.querySelector('#red-start').disabled);
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.day), 2);
+      assert.equal(await page.locator('#red-light-stat').isVisible(), true);
+      assert.match(await page.locator('.red-preview-title').innerText(), /ひかるヨーヨー/);
+      await page.clock.install(); await page.clock.pauseAt(new Date(Date.now() + 1000));
+      await page.locator('#red-start').tap(); await gameStatus(page, 'playing');
+      for (let i = 0; i < 3; i++) {
+        // Fixtures only add a valid glowing ball in the browser; the real controller and
+        // unmodified collision/collection logic are responsible for the catch.
+        await page.evaluate(index => {
+          const game = window.__redGameUnderTest, state = game.state;
+          const light = { id: -100 - index, type: 'red', glowing: true, size: 94,
+            direction: 'top', large: false, x: 0, y: 0, vx: 0, vy: 0, angle: 0, spin: 0, age: 1 };
+          const body = window.HikariRedModel.yoyoBody(light);
+          light.x += state.player.x + state.player.width * .04 - body.x;
+          light.y += state.player.top + state.player.height * .52 - body.y;
+          state.yoyos.push(light);
+        }, i);
+        await page.clock.runFor(80);
+        assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.collected), i + 1);
+        assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.lives), 3);
+        assert.equal(await page.locator('#red-light-stars').innerText(), '★'.repeat(i + 1) + '☆'.repeat(2 - i));
+      }
+      await gameStatus(page, 'won');
+      assert.ok(await page.evaluate(() => window.__redGameUnderTest.state.remaining > 29), 'three lights immediately finish the round');
+      assert.equal(await page.locator('#red-overlay').evaluate(el => el.hidden), true, 'the cinematic plays before result');
+      assert.equal(await page.locator('#red-celebration').evaluate(el => el.hidden), false);
+      await page.clock.runFor(4250);
+      assert.equal(await page.locator('#red-overlay').evaluate(el => el.hidden), false);
+      assert.match(await page.locator('#red-overlay-title').innerText(), /あかい光、みつけた/);
+      await page.locator('#red-retry').tap();
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.day), 2);
+      assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.collected), 0);
+      check();
+    } finally { await context.close(); }
+  });
+}
+
 async function redRoundFlow(browser, base) {
   await run('real red round: six sprites, 30-second clear, body hits, loss and immediate retry', async () => {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -484,6 +529,7 @@ async function storageUnavailable(browser, base) {
     }
     await routeRegression(browser, base);
     await redRoundFlow(browser, base);
+    await dayTwoLightFlow(browser, base);
     await projectorFlow(browser, base);
     await storageUnavailable(browser, base);
     fs.writeFileSync(resultPath, JSON.stringify({ engine, browserVersion: browser.version(), passed, failed: 0, mobileWidths: [360, 390, 430], mobileProfiles: ['Android-like UA + touch', 'iPhone-like UA + touch'], note: 'Mobile profiles use the selected engine; they are not physical iOS/Android devices.' }, null, 2) + '\n');
