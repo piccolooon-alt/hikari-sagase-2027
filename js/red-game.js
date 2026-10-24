@@ -41,6 +41,25 @@
   let assetsReady = false, loading = null;
   let previousStatus = '', previousLives = -1, previousTime = '', previousCollected = -1;
   let celebrating = false, celebrationTimer = 0;
+  let bellContext = null;
+  function gentleBell(frequency, seconds = .42) {
+    // User gesture and the existing music ON/OFF control govern optional effects.
+    if (game.state.day !== 2 || document.getElementById('bgm-toggle')?.getAttribute('aria-pressed') !== 'true') return;
+    try {
+      const AudioEngine = window.AudioContext || window.webkitAudioContext;
+      if (!AudioEngine) return;
+      if (!bellContext) bellContext = new AudioEngine();
+      if (bellContext.state === 'suspended') bellContext.resume().catch(() => {});
+      const now = bellContext.currentTime, note = bellContext.createOscillator(), envelope = bellContext.createGain();
+      note.type = 'sine';
+      note.frequency.setValueAtTime(frequency, now);
+      envelope.gain.setValueAtTime(.0001, now);
+      envelope.gain.exponentialRampToValueAtTime(.035, now + .025);
+      envelope.gain.exponentialRampToValueAtTime(.0001, now + seconds);
+      note.connect(envelope); envelope.connect(bellContext.destination);
+      note.start(now); note.stop(now + seconds + .02);
+    } catch (_) { /* Sound is optional: a blocked audio context never blocks gameplay. */ }
+  }
   let pointer = null, pointerOffset = 0;
   let pauseReason = '';
 
@@ -90,9 +109,8 @@
     $('red-light-stat').hidden = !second;
     root.querySelector('.red-preview-title').textContent = second ? 'ひかるヨーヨーをつかまえろ！' : '水風船ヨーヨーよけ';
     startPanel.querySelector('h2').textContent = second ? 'ひかりを 3つ あつめよう！' : `${game.config.duration}びょう よけよう！`;
-    startPanel.querySelector('p').textContent = second ?
-      'ふつうのヨーヨーはよけて、キラキラ光るヨーヨーを3つキャッチ！' :
-      '浴衣の子を、ゆびで左右に動かしてね。ヨーヨーに当たらないように進もう！';
+    if (second) startPanel.querySelector('p').textContent = 'ふつうのヨーヨーはよけて、キラキラ光るヨーヨーを3つキャッチ！';
+    else startPanel.querySelector('p').innerHTML = '浴衣の子を、ゆびで左右に動かしてね。<br>ヨーヨーに当たらないように進もう！';
     $('red-start-rules').replaceChildren(second ?
       '3つ集めた瞬間にクリア！ 30秒・ライフ3つ。' :
       `ライフは${game.config.lives}つ。大きいヨーヨーも来るよ。`,
@@ -129,6 +147,7 @@
         void catchEffect.offsetWidth;
         catchEffect.hidden = false;
         catchEffect.classList.add('pop');
+        gentleBell(650 + state.collected * 92, state.collected === 3 ? .8 : .4);
       }
     }
     if (lifeChanged) {
