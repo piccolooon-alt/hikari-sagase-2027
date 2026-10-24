@@ -251,7 +251,9 @@ run('day two keeps the gentle 30-second pace and replaces hazards with visible g
   assert.equal(game.config.duration, 30);
   assert.equal(game.config.lives, 1000);
   assert.ok(game.state.spawned >= 16 && game.state.spawned <= 20, 'the total count stays near day one');
-  assert.ok(glowing.length >= 6, 'more than three catch opportunities');
+  assert.equal(glowing.length, 6, 'six glowing yoyos offer double the three-catch goal');
+  assert.deepEqual(glowing.map(light => light.id), [1, 4, 7, 10, 13, 16],
+    'catch opportunities are spread across the full round');
   for (const light of glowing) {
     assert.equal(light.direction, 'top');
     assert.equal(light.large, false);
