@@ -46,7 +46,7 @@
   const WIDTH = 360;
   const LIGHT_GOAL = 3;
   // Day 2: replace some regular hazards with glowing catchable balloons; never add extra hazards.
-  const GLOW_SPAWNS = new Set([0, 2, 4, 6, 8, 11, 14, 16]);
+  const GLOW_SPAWNS = new Set([1, 4, 7, 10, 13, 16]);
   const DIRECTIONS = ['top', 'diagonal-left', 'left', 'right', 'diagonal-right'];
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
