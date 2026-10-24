@@ -13,6 +13,19 @@
   hitEffect.hidden = true;
   hitEffect.setAttribute('aria-hidden', 'true');
   arena.append(hitEffect);
+  const catchEffect = document.createElement('div');
+  catchEffect.id = 'red-catch-effect';
+  catchEffect.textContent = '✦';
+  catchEffect.hidden = true;
+  catchEffect.setAttribute('aria-hidden', 'true');
+  arena.append(catchEffect);
+  catchEffect.addEventListener('animationend', () => { catchEffect.hidden = true; });
+  const celebration = document.createElement('div');
+  celebration.id = 'red-celebration';
+  celebration.setAttribute('aria-hidden', 'true');
+  celebration.hidden = true;
+  celebration.innerHTML = '<span class="red-light-orb red-light-one"></span><span class="red-light-orb red-light-two"></span><span class="red-light-orb red-light-three"></span><span class="red-light-core"></span><span class="red-light-trail"></span>';
+  arena.append(celebration);
   const overlay = $('red-overlay');
   const startPanel = $('red-start-panel');
   const resultPanel = $('red-result-panel');
@@ -26,7 +39,8 @@
   const heldKeys = new Set();
   let entered = false, frameId = 0, lastFrame = 0;
   let assetsReady = false, loading = null;
-  let previousStatus = '', previousLives = -1, previousTime = '';
+  let previousStatus = '', previousLives = -1, previousTime = '', previousCollected = -1;
+  let celebrating = false, celebrationTimer = 0;
   let pointer = null, pointerOffset = 0;
   let pauseReason = '';
 
@@ -45,23 +59,78 @@
     panel.hidden = !visible;
     panel.setAttribute('aria-hidden', String(!visible));
   }
+  function cancelCelebration() {
+    if (celebrationTimer) clearTimeout(celebrationTimer);
+    celebrationTimer = 0; celebrating = false;
+    celebration.hidden = true;
+    celebration.classList.remove('active');
+  }
+  function beginCelebration() {
+    cancelCelebration();
+    celebrating = true;
+    celebration.hidden = false;
+    void celebration.offsetWidth;
+    celebration.classList.add('active');
+    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 800 : 4000;
+    celebrationTimer = setTimeout(() => {
+      celebrationTimer = 0;
+      celebrating = false;
+      celebration.hidden = true;
+      celebration.classList.remove('active');
+      if (entered && game.state.status === 'won' && game.state.day === 2) {
+        syncView();
+        $('red-overlay-title').tabIndex = -1;
+        $('red-overlay-title').focus({ preventScroll: true });
+      }
+    }, duration);
+  }
+  function configureDay() {
+    const second = game.state.day === 2;
+    root.dataset.gameDay = String(game.state.day);
+    $('red-light-stat').hidden = !second;
+    root.querySelector('.red-preview-title').textContent = second ? 'ひかるヨーヨーをつかまえろ！' : '水風船ヨーヨーよけ';
+    startPanel.querySelector('h2').textContent = second ? 'ひかりを 3つ あつめよう！' : `${game.config.duration}びょう よけよう！`;
+    startPanel.querySelector('p').textContent = second ?
+      'ふつうのヨーヨーはよけて、キラキラ光るヨーヨーを3つキャッチ！' :
+      '浴衣の子を、ゆびで左右に動かしてね。ヨーヨーに当たらないように進もう！';
+    $('red-start-rules').replaceChildren(second ?
+      '3つ集めた瞬間にクリア！ 30秒・ライフ3つ。' :
+      `ライフは${game.config.lives}つ。大きいヨーヨーも来るよ。`,
+      document.createElement('br'), 'パソコンは左右の矢印キーでも遊べます。');
+    $('red-rule-summary').textContent = second ?
+      '2日目：ひかるヨーヨー3つでクリア！ 受付の提灯とはまだ連動しません。' :
+      `${game.config.duration}秒・ライフ${game.config.lives}つのおためし。受付の提灯との連動はまだありません。`;
+  }
   function syncView({ focus = false } = {}) {
     const state = game.state;
     const playing = state.status === 'playing';
     const statusChanged = previousStatus !== state.status;
     const lifeChanged = previousLives !== state.lives;
+    const collectedChanged = previousCollected !== state.collected;
     root.dataset.gameState = state.status;
-    overlay.hidden = playing;
-    overlay.setAttribute('aria-hidden', String(playing));
+    overlay.hidden = playing || celebrating;
+    overlay.setAttribute('aria-hidden', String(playing || celebrating));
     showPanel(startPanel, state.status === 'ready');
     showPanel(pausePanel, state.status === 'paused');
-    showPanel(resultPanel, state.status === 'won' || state.status === 'lost');
+    showPanel(resultPanel, !celebrating && (state.status === 'won' || state.status === 'lost'));
     startButton.disabled = !assetsReady || !brush;
     pauseButton.disabled = !playing;
     leftButton.disabled = rightButton.disabled = !playing;
 
     const time = state.remaining.toFixed(1);
     if (previousTime !== time) { $('red-time').textContent = time; previousTime = time; }
+    if (collectedChanged) {
+      $('red-light-stars').textContent = '★'.repeat(state.collected) + '☆'.repeat(window.HikariRedModel.LIGHT_GOAL - state.collected);
+      $('red-light-stars').setAttribute('aria-label', `光${state.collected}こ`);
+      if (state.day === 2 && state.collected > 0 && state.lastCollected) {
+        catchEffect.style.left = `${state.lastCollected.x / state.width * 100}%`;
+        catchEffect.style.top = `${state.lastCollected.y / state.height * 100}%`;
+        catchEffect.classList.remove('pop');
+        void catchEffect.offsetWidth;
+        catchEffect.hidden = false;
+        catchEffect.classList.add('pop');
+      }
+    }
     if (lifeChanged) {
       $('red-lives').textContent = `${'♥ '.repeat(state.lives)}${'♡ '.repeat(game.config.lives - state.lives)}`.trim();
       $('red-lives').setAttribute('aria-label', `ライフ${state.lives}つ`);
