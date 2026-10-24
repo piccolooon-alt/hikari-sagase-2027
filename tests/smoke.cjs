@@ -275,6 +275,9 @@ async function dayTwoLightFlow(browser, base) {
       assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.day), 2);
       assert.equal(await page.locator('#red-light-stat').isVisible(), true);
       assert.match(await page.locator('.red-preview-title').innerText(), /ひかるヨーヨー/);
+      assert.equal(await page.locator('#red-catch-effect .red-catch-particle').count(), 9);
+      assert.equal(await page.locator('#red-celebration .red-celebration-particle').count(), 26);
+      assert.equal(await page.locator('#red-celebration .red-celebration-heart').count(), 3);
       await page.clock.install(); await page.clock.pauseAt(new Date(Date.now() + 1000));
       await page.locator('#red-start').tap(); await gameStatus(page, 'playing');
       for (let i = 0; i < 3; i++) {
@@ -293,12 +296,17 @@ async function dayTwoLightFlow(browser, base) {
         assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.collected), i + 1);
         assert.equal(await page.evaluate(() => window.__redGameUnderTest.state.lives), 3);
         assert.equal(await page.locator('#red-light-stars').innerText(), '★'.repeat(i + 1) + '☆'.repeat(2 - i));
+        assert.equal(await page.locator('#red-light-stars').evaluate(el => el.classList.contains('red-star-bounce')), true);
+        assert.equal(await page.locator('#red-catch-effect').evaluate(el => el.hidden), false, 'the cute sparkle burst appears at the catch');
       }
       await gameStatus(page, 'won');
       assert.ok(await page.evaluate(() => window.__redGameUnderTest.state.remaining > 29), 'three lights immediately finish the round');
       assert.equal(await page.locator('#red-overlay').evaluate(el => el.hidden), true, 'the cinematic plays before result');
       assert.equal(await page.locator('#red-celebration').evaluate(el => el.hidden), false);
-      await page.clock.runFor(4250);
+      assert.equal(await page.locator('#red-celebration .red-celebration-particle').first().evaluate(el => getComputedStyle(el).animationName), 'red-cute-particle');
+      await page.clock.runFor(1400);
+      await snapshot(page, '390-red-day2-sparkle-celebration');
+      await page.clock.runFor(2850);
       assert.equal(await page.locator('#red-overlay').evaluate(el => el.hidden), false);
       assert.match(await page.locator('#red-overlay-title').innerText(), /あかい光、みつけた/);
       await page.locator('#red-retry').tap();
@@ -319,6 +327,8 @@ async function redRoundFlow(browser, base) {
       await page.goto(`${base}index.html#red`); await active(page, 'red-preview'); await resources(page);
       await page.waitForFunction(() => !document.querySelector('#red-start').disabled);
       await snapshot(page, '390-red-ready');
+      assert.equal(await page.locator('#red-preview').getAttribute('data-game-day'), '1');
+      assert.equal(await page.locator('#red-light-stat').isVisible(), false, 'the first-day game must not show the catch UI');
       await page.clock.install();
       await page.clock.pauseAt(new Date(Date.now() + 1000));
       await page.locator('#red-start').tap();
