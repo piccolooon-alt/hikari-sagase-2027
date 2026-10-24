@@ -51,7 +51,7 @@
     });
     document.querySelector('.app').dataset.screen = id;
     window.HikariAudio.selectScene(id === 'red-preview' ? 'red' : 'common');
-    if (id === 'red-preview' && previous !== id) window.HikariRedGame.enter();
+    if (id === 'red-preview' && previous !== id) window.HikariRedGame.enter(day);
     $('bgm-toggle').hidden = id === 'loading';
     if (historyMode !== 'none' && id !== 'loading') {
       const url = new URL(location.href);
