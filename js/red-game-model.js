@@ -44,6 +44,9 @@
     minimumLeadTime: 1.6
   });
   const WIDTH = 360;
+  const LIGHT_GOAL = 3;
+  // Day 2: replace some regular hazards with glowing catchable balloons; never add extra hazards.
+  const GLOW_SPAWNS = new Set([0, 2, 4, 6, 8, 11, 14, 16]);
   const DIRECTIONS = ['top', 'diagonal-left', 'left', 'right', 'diagonal-right'];
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -92,7 +95,8 @@
     const range = (min, max) => min + (max - min) * rand();
     const state = {
       status: 'ready', width: WIDTH, height: config.height,
-      elapsed: 0, remaining: config.duration, lives: config.lives,
+      day: 1, elapsed: 0, remaining: config.duration, lives: config.lives,
+      collected: 0, collectFeedback: 0, lastCollected: null, lossReason: null, winReason: null,
       invulnerable: 0, hitFeedback: 0, impact: null, spawned: 0, yoyos: [],
       player: { x: WIDTH / 2, width: config.playerWidth, height: config.playerWidth * 4 / 3, bottom: 0, top: 0, y: 0 }
     };
@@ -125,11 +129,18 @@
     }
     function spawn() {
       if (state.yoyos.length >= config.maxObjects) return;
-      const type = nextType(), direction = nextDirection(), large = rand() < config.largeProbability;
-      const size = large ? range(config.largeSizeMin, config.largeSizeMax) : range(config.normalSizeMin, config.normalSizeMax);
-      const speed = range(config.speedMin, config.speedMax) * (large ? config.largeSpeedFactor : 1);
+      const type = nextType();
+      const glowing = state.day === 2 && GLOW_SPAWNS.has(state.spawned);
+      const direction = glowing ? 'top' : nextDirection();
+      const large = !glowing && rand() < config.largeProbability;
+      const size = glowing ? 94 : large ? range(config.largeSizeMin, config.largeSizeMax) : range(config.normalSizeMin, config.normalSizeMax);
+      const speed = glowing ? config.speedMin * .94 : range(config.speedMin, config.speedMax) * (large ? config.largeSpeedFactor : 1);
       let x, y, aimX;
-      if (direction === 'left' || direction === 'right') {
+      if (glowing) {
+        // Easy-to-read vertical approach: no sudden sideways movement into the girl.
+        x = Math.floor(state.spawned / 2) % 2 === 0 ? range(72, 94) : range(266, 288);
+        y = -size * .34; aimX = x;
+      } else if (direction === 'left' || direction === 'right') {
         x = direction === 'left' ? -size * .55 : WIDTH + size * .55;
         const top = state.height * .08;
         y = range(top, Math.max(top, Math.min(state.height * .30, state.player.y - 150)));
@@ -151,15 +162,23 @@
         const scale = clamp((collisionBand - y) / (vy * config.minimumLeadTime), .01, 1);
         vx *= scale; vy *= scale;
       }
-      state.yoyos.push({ id: nextId++, type, direction, large, x, y, size, vx, vy, angle: range(-.18, .18), spin: range(-.24, .24), age: 0 });
+      state.yoyos.push({ id: nextId++, type, direction, large, glowing, x, y, size, vx, vy, angle: range(-.18, .18), spin: range(-.24, .24), age: 0 });
       state.spawned++;
     }
-    function start() {
-      state.status = 'playing'; state.elapsed = 0; state.remaining = config.duration;
+    function reset() {
+      state.status = 'ready'; state.elapsed = 0; state.remaining = config.duration;
       state.lives = config.lives; state.invulnerable = 0; state.hitFeedback = 0; state.impact = null;
+      state.collected = 0; state.collectFeedback = 0; state.lastCollected = null;
+      state.lossReason = null; state.winReason = null;
       state.spawned = 0; state.yoyos.length = 0; nextId = 0;
       typeBag = []; directionBag = []; lastType = null; lastDirection = null;
       targetX = state.player.x = WIDTH / 2; spawnIn = config.firstSpawnDelay;
+      return state;
+    }
+    function start() { reset(); state.status = 'playing'; return state; }
+    function setDay(day) {
+      const chosen = day === 2 ? 2 : 1;
+      if (state.day !== chosen) { state.day = chosen; reset(); }
       return state;
     }
     function pause() { if (state.status === 'playing') state.status = 'paused'; return state; }
@@ -174,6 +193,7 @@
       state.remaining = Math.max(0, config.duration - state.elapsed);
       state.invulnerable = Math.max(0, state.invulnerable - dt);
       state.hitFeedback = Math.max(0, state.hitFeedback - dt);
+      state.collectFeedback = Math.max(0, state.collectFeedback - dt);
       const bound = limits(), maxMove = config.playerSpeed * dt;
       state.player.x = clamp(state.player.x + clamp(targetX - state.player.x, -maxMove, maxMove), bound.min, bound.max);
       spawnIn -= dt;
@@ -186,17 +206,35 @@
         const yoyo = state.yoyos[i];
         yoyo.x += yoyo.vx * dt; yoyo.y += yoyo.vy * dt;
         yoyo.angle += yoyo.spin * dt; yoyo.age += dt;
-        const contact = state.invulnerable === 0 ? playerContact(state.player, yoyoBody(yoyo)) : null;
+        const ball = yoyoBody(yoyo);
+        const contact = (yoyo.glowing || state.invulnerable === 0) ?
+          playerContact(state.player, yoyo.glowing ? { ...ball, radius: ball.radius * 1.18 } : ball) : null;
         if (contact) {
-          state.yoyos.splice(i, 1); state.lives--;
-          state.invulnerable = config.invulnerability; state.hitFeedback = config.hitFeedbackDuration; state.impact = contact;
-          if (state.lives <= 0) { state.status = 'lost'; return; }
+          state.yoyos.splice(i, 1);
+          if (yoyo.glowing) {
+            state.collected++;
+            state.lastCollected = { x: ball.x, y: ball.y };
+            state.collectFeedback = .65;
+            if (state.collected >= LIGHT_GOAL) {
+              state.status = 'won'; state.winReason = 'light'; return;
+            }
+          } else {
+            state.lives--;
+            state.invulnerable = config.invulnerability;
+            state.hitFeedback = config.hitFeedbackDuration; state.impact = contact;
+            if (state.lives <= 0) { state.status = 'lost'; state.lossReason = 'lives'; return; }
+          }
           continue;
         }
         const margin = yoyo.size * .75;
         if (yoyo.x < -margin || yoyo.x > WIDTH + margin || yoyo.y > state.height + margin || yoyo.y < -margin) state.yoyos.splice(i, 1);
       }
-      if (state.remaining <= 1e-9) { state.elapsed = config.duration; state.remaining = 0; state.status = 'won'; }
+      if (state.remaining <= 1e-9) {
+        state.elapsed = config.duration; state.remaining = 0;
+        state.status = state.day === 1 ? 'won' : 'lost';
+        if (state.day === 1) state.winReason = 'survived';
+        else state.lossReason = 'time';
+      }
     }
     function step(seconds) {
       if (state.status !== 'playing' || !Number.isFinite(seconds) || seconds <= 0) return state;
@@ -218,7 +256,7 @@
       state.invulnerable = Math.max(state.invulnerable, config.invulnerability);
       return state;
     }
-    return { state, config, start, step, pause, resume, setTargetX, movePlayer, resize };
+    return { state, config, start, setDay, step, pause, resume, setTargetX, movePlayer, resize };
   }
-  return Object.freeze({ DEFAULT_CONFIG, YOYO_TYPES, YOYO_BODIES, createGame, yoyoBody, playerContact });
+  return Object.freeze({ DEFAULT_CONFIG, LIGHT_GOAL, YOYO_TYPES, YOYO_BODIES, createGame, yoyoBody, playerContact });
 });

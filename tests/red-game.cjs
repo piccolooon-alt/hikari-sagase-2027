@@ -236,4 +236,73 @@ run('reducing spawn density yields a calmer first-day round without changing gam
 });
 
 
+
+run('day two keeps the gentle 30-second pace and replaces hazards with visible glowing balloons', () => {
+  const game = createGame({ random: random(2027), config: { lives: 1000 } });
+  game.setDay(2); game.start();
+  const seen = new Set(), glowing = [];
+  while (game.state.status === 'playing') {
+    game.step(.05);
+    for (const yoyo of game.state.yoyos) if (!seen.has(yoyo.id)) {
+      seen.add(yoyo.id);
+      if (yoyo.glowing) glowing.push({ ...yoyo });
+    }
+  }
+  assert.equal(game.config.duration, 30);
+  assert.equal(game.config.lives, 1000);
+  assert.ok(game.state.spawned >= 16 && game.state.spawned <= 20, 'the total count stays near day one');
+  assert.ok(glowing.length >= 6, 'more than three catch opportunities');
+  for (const light of glowing) {
+    assert.equal(light.direction, 'top');
+    assert.equal(light.large, false);
+    assert.ok((light.x >= 72 && light.x <= 94) || (light.x >= 266 && light.x <= 288),
+      'the glow approaches from a reachable, clearly visible lane');
+  }
+  assert.ok(game.state.collected < 3, 'standing in the center does not automatically complete the round');
+  assert.equal(game.state.status, 'lost');
+  assert.equal(game.state.lossReason, 'time');
+});
+
+run('three caught glowing balloons immediately win on day two with three hearts intact', () => {
+  const game = createGame({ config: { firstSpawnDelay: 60 } });
+  game.setDay(2); game.start();
+  for (let i = 0; i < 3; i++) {
+    const balloon = hitFixture(game);
+    balloon.glowing = true;
+    game.step(1 / 60);
+    assert.equal(game.state.collected, i + 1);
+    assert.equal(game.state.lives, 3);
+    assert.equal(game.state.status, i === 2 ? 'won' : 'playing');
+    assert.ok(!game.state.yoyos.includes(balloon));
+  }
+  assert.equal(game.state.winReason, 'light');
+  assert.ok(game.state.remaining > 29, 'no need to survive all 30 seconds');
+  const frozen = game.state.remaining;
+  game.step(1);
+  assert.equal(game.state.remaining, frozen);
+  game.start();
+  assert.equal(game.state.collected, 0);
+  assert.equal(game.state.status, 'playing');
+  assert.equal(game.state.day, 2, 'retry keeps the selected day');
+});
+
+run('catching light during damage immunity is safe; switching back restores day one', () => {
+  const game = createGame({ config: { firstSpawnDelay: 60 } });
+  game.setDay(2); game.start();
+  hitFixture(game); game.step(1 / 60);
+  assert.equal(game.state.lives, 2);
+  assert.ok(game.state.invulnerable > 0);
+  const light = hitFixture(game); light.glowing = true;
+  game.step(1 / 60);
+  assert.equal(game.state.collected, 1, 'lights can be collected during the temporary hit grace');
+  assert.equal(game.state.lives, 2);
+  game.setDay(1);
+  assert.equal(game.state.status, 'ready');
+  assert.equal(game.state.collected, 0);
+  game.start(); advance(game, 30);
+  assert.equal(game.state.status, 'won');
+  assert.equal(game.state.winReason, 'survived');
+});
+
+
 console.log(`${passed} red-game model scenarios passed.`);

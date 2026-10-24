@@ -231,3 +231,48 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .red-preview-controls #red-pause{background:#fff0c8;color:#3c2c35}
 .red-preview-footer .red-preview-note{font-size:clamp(10px,2.6cqw,12px);margin:8px 0 0;color:#fff1d4}
 @media(max-height:700px){.red-preview-header{top:8px}.red-preview-badge{padding:6px;font-size:10px}.red-preview-title{top:10%;font-size:22px}.red-game-hud{top:17%}.red-game-stat{padding:5px 9px}.red-arena{top:26%;bottom:20%}.red-game-panel{padding:14px 10px}.red-game-panel h2{margin-bottom:8px;font-size:21px}.red-game-panel p{margin:7px 0 10px;font-size:12px;line-height:1.6}.red-game-panel p.red-game-panel-small{font-size:10px}.red-preview-footer{padding-top:5px}.red-preview-footer p{font-size:11px;line-height:1.4}.red-preview-footer .red-preview-note{font-size:9px}}
+
+/* Second-day collectible light: day one's art and collision visuals stay untouched. */
+.red-game-stat[hidden],#red-catch-effect[hidden],#red-celebration[hidden]{display:none!important}
+#red-preview[data-game-day="2"] .red-preview-title{font-size:clamp(17px,5.0cqw,25px)}
+#red-preview[data-game-day="2"] .red-game-hud{left:3%;right:3%;gap:4px}
+#red-preview[data-game-day="2"] .red-game-stat:first-child span:last-child{display:none} /* compact three-part HUD on 360px phones */
+#red-preview[data-game-day="2"] .red-game-stat{gap:3px;padding:7px 6px;border-radius:12px}
+#red-preview[data-game-day="2"] .red-game-stat span{font-size:clamp(9px,2.6cqw,12px)}
+#red-preview[data-game-day="2"] .red-game-stat strong{font-size:clamp(15px,4.3cqw,21px)}
+#red-preview[data-game-day="2"] #red-light-stars{font-size:clamp(15px,4.6cqw,22px);letter-spacing:-2px;color:#ffe3a9;text-shadow:0 0 9px #ff8d8d}
+#red-catch-effect{position:absolute;z-index:2;transform:translate(-50%,-50%);font-size:44px;line-height:1;color:#ffedba;text-shadow:0 0 12px #fff6c8,0 0 28px #fd778a;pointer-events:none}
+#red-catch-effect.pop{animation:red-catch-shimmer .65s ease-out both}
+@keyframes red-catch-shimmer{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}26%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}100%{opacity:0;transform:translate(-50%,-85%) scale(1.7)}}
+#red-celebration{position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden;background:radial-gradient(circle at 50% 52%,#ffcccc33 0,#13224444 65%,#17223a22 100%)}
+#red-celebration .red-light-orb,#red-celebration .red-light-core{position:absolute;left:50%;top:57%;display:block;border-radius:50%;background:radial-gradient(circle at 37% 33%,#fffdf0 4%,#ffe4c6 24%,#fd7892 58%,#cf435c8a 78%,transparent 100%);box-shadow:0 0 14px #ffe8d0,0 0 42px #f67b9f}
+#red-celebration .red-light-orb{width:27px;height:27px;opacity:0;--dx:0px;--dy:0px}
+#red-celebration .red-light-one{--dx:-105px;--dy:-65px}
+#red-celebration .red-light-two{--dx:88px;--dy:-47px}
+#red-celebration .red-light-three{--dx:0px;--dy:95px}
+#red-celebration.active .red-light-orb{animation:red-three-orbs 1.7s ease-in-out both}
+#red-celebration .red-light-two{animation-delay:.12s!important}
+#red-celebration .red-light-three{animation-delay:.2s!important}
+@keyframes red-three-orbs{
+  0%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.5)}
+  18%{opacity:1}
+  75%{opacity:1;transform:translate(-50%,-50%) scale(1.0)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(.25)}
+}
+#red-celebration .red-light-core{width:62px;height:62px;opacity:0;transform:translate(-50%,-50%) scale(.3)}
+#red-celebration.active .red-light-core{animation:red-light-ascend 2.55s 1.45s ease-in-out both}
+@keyframes red-light-ascend{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}
+  25%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}
+  56%{opacity:.95}
+  100%{opacity:0;transform:translate(-50%,calc(-50% - 210px)) scale(.65)}
+}
+#red-celebration .red-light-trail{position:absolute;left:50%;top:35%;width:5px;height:5px;border-radius:50%;opacity:0;background:#ffebd0;box-shadow:-14px 31px 0 #ffd5bc,9px 46px 0 #fff0d4,-5px 63px 0 #ffc9ce,16px 77px 0 #ffe9d5,-11px 90px 0 #ffd4bf,2px 110px 0 #ffe4bd}
+#red-celebration.active .red-light-trail{animation:red-trail-fade 2.25s 1.7s ease-in-out both}
+@keyframes red-trail-fade{0%,100%{opacity:0}35%,68%{opacity:.82}}
+@media(prefers-reduced-motion:reduce){
+  #red-celebration.active .red-light-orb{animation:none;opacity:0}
+  #red-celebration.active .red-light-core{animation:none;opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+  #red-celebration.active .red-light-trail{animation:none;opacity:.65}
+  #red-catch-effect.pop{animation:none;opacity:0}
+}

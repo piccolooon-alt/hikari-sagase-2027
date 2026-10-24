@@ -13,6 +13,19 @@
   hitEffect.hidden = true;
   hitEffect.setAttribute('aria-hidden', 'true');
   arena.append(hitEffect);
+  const catchEffect = document.createElement('div');
+  catchEffect.id = 'red-catch-effect';
+  catchEffect.textContent = '✦';
+  catchEffect.hidden = true;
+  catchEffect.setAttribute('aria-hidden', 'true');
+  arena.append(catchEffect);
+  catchEffect.addEventListener('animationend', () => { catchEffect.hidden = true; });
+  const celebration = document.createElement('div');
+  celebration.id = 'red-celebration';
+  celebration.setAttribute('aria-hidden', 'true');
+  celebration.hidden = true;
+  celebration.innerHTML = '<span class="red-light-orb red-light-one"></span><span class="red-light-orb red-light-two"></span><span class="red-light-orb red-light-three"></span><span class="red-light-core"></span><span class="red-light-trail"></span>';
+  arena.append(celebration);
   const overlay = $('red-overlay');
   const startPanel = $('red-start-panel');
   const resultPanel = $('red-result-panel');
@@ -26,7 +39,27 @@
   const heldKeys = new Set();
   let entered = false, frameId = 0, lastFrame = 0;
   let assetsReady = false, loading = null;
-  let previousStatus = '', previousLives = -1, previousTime = '';
+  let previousStatus = '', previousLives = -1, previousTime = '', previousCollected = -1;
+  let celebrating = false, celebrationTimer = 0;
+  let bellContext = null;
+  function gentleBell(frequency, seconds = .42) {
+    // User gesture and the existing music ON/OFF control govern optional effects.
+    if (game.state.day !== 2 || document.getElementById('bgm-toggle')?.getAttribute('aria-pressed') !== 'true') return;
+    try {
+      const AudioEngine = window.AudioContext || window.webkitAudioContext;
+      if (!AudioEngine) return;
+      if (!bellContext) bellContext = new AudioEngine();
+      if (bellContext.state === 'suspended') bellContext.resume().catch(() => {});
+      const now = bellContext.currentTime, note = bellContext.createOscillator(), envelope = bellContext.createGain();
+      note.type = 'sine';
+      note.frequency.setValueAtTime(frequency, now);
+      envelope.gain.setValueAtTime(.0001, now);
+      envelope.gain.exponentialRampToValueAtTime(.035, now + .025);
+      envelope.gain.exponentialRampToValueAtTime(.0001, now + seconds);
+      note.connect(envelope); envelope.connect(bellContext.destination);
+      note.start(now); note.stop(now + seconds + .02);
+    } catch (_) { /* Sound is optional: a blocked audio context never blocks gameplay. */ }
+  }
   let pointer = null, pointerOffset = 0;
   let pauseReason = '';
 
@@ -45,23 +78,78 @@
     panel.hidden = !visible;
     panel.setAttribute('aria-hidden', String(!visible));
   }
+  function cancelCelebration() {
+    if (celebrationTimer) clearTimeout(celebrationTimer);
+    celebrationTimer = 0; celebrating = false;
+    celebration.hidden = true;
+    celebration.classList.remove('active');
+  }
+  function beginCelebration() {
+    cancelCelebration();
+    celebrating = true;
+    celebration.hidden = false;
+    void celebration.offsetWidth;
+    celebration.classList.add('active');
+    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 800 : 4000;
+    celebrationTimer = setTimeout(() => {
+      celebrationTimer = 0;
+      celebrating = false;
+      celebration.hidden = true;
+      celebration.classList.remove('active');
+      if (entered && game.state.status === 'won' && game.state.day === 2) {
+        syncView();
+        $('red-overlay-title').tabIndex = -1;
+        $('red-overlay-title').focus({ preventScroll: true });
+      }
+    }, duration);
+  }
+  function configureDay() {
+    const second = game.state.day === 2;
+    root.dataset.gameDay = String(game.state.day);
+    $('red-light-stat').hidden = !second;
+    root.querySelector('.red-preview-title').textContent = second ? 'ひかるヨーヨーをつかまえろ！' : '水風船ヨーヨーよけ';
+    startPanel.querySelector('h2').textContent = second ? 'ひかりを 3つ あつめよう！' : `${game.config.duration}びょう よけよう！`;
+    if (second) startPanel.querySelector('p').textContent = 'ふつうのヨーヨーはよけて、キラキラ光るヨーヨーを3つキャッチ！';
+    else startPanel.querySelector('p').innerHTML = '浴衣の子を、ゆびで左右に動かしてね。<br>ヨーヨーに当たらないように進もう！';
+    $('red-start-rules').replaceChildren(second ?
+      '3つ集めた瞬間にクリア！ 30秒・ライフ3つ。' :
+      `ライフは${game.config.lives}つ。大きいヨーヨーも来るよ。`,
+      document.createElement('br'), 'パソコンは左右の矢印キーでも遊べます。');
+    $('red-rule-summary').textContent = second ?
+      '2日目：ひかるヨーヨー3つでクリア！ 受付の提灯とはまだ連動しません。' :
+      `${game.config.duration}秒・ライフ${game.config.lives}つのおためし。受付の提灯との連動はまだありません。`;
+  }
   function syncView({ focus = false } = {}) {
     const state = game.state;
     const playing = state.status === 'playing';
     const statusChanged = previousStatus !== state.status;
     const lifeChanged = previousLives !== state.lives;
+    const collectedChanged = previousCollected !== state.collected;
     root.dataset.gameState = state.status;
-    overlay.hidden = playing;
-    overlay.setAttribute('aria-hidden', String(playing));
+    overlay.hidden = playing || celebrating;
+    overlay.setAttribute('aria-hidden', String(playing || celebrating));
     showPanel(startPanel, state.status === 'ready');
     showPanel(pausePanel, state.status === 'paused');
-    showPanel(resultPanel, state.status === 'won' || state.status === 'lost');
+    showPanel(resultPanel, !celebrating && (state.status === 'won' || state.status === 'lost'));
     startButton.disabled = !assetsReady || !brush;
     pauseButton.disabled = !playing;
     leftButton.disabled = rightButton.disabled = !playing;
 
     const time = state.remaining.toFixed(1);
     if (previousTime !== time) { $('red-time').textContent = time; previousTime = time; }
+    if (collectedChanged) {
+      $('red-light-stars').textContent = '★'.repeat(state.collected) + '☆'.repeat(window.HikariRedModel.LIGHT_GOAL - state.collected);
+      $('red-light-stars').setAttribute('aria-label', `光${state.collected}こ`);
+      if (state.day === 2 && state.collected > 0 && state.lastCollected) {
+        catchEffect.style.left = `${state.lastCollected.x / state.width * 100}%`;
+        catchEffect.style.top = `${state.lastCollected.y / state.height * 100}%`;
+        catchEffect.classList.remove('pop');
+        void catchEffect.offsetWidth;
+        catchEffect.hidden = false;
+        catchEffect.classList.add('pop');
+        gentleBell(650 + state.collected * 92, state.collected === 3 ? .8 : .4);
+      }
+    }
     if (lifeChanged) {
       $('red-lives').textContent = `${'♥ '.repeat(state.lives)}${'♡ '.repeat(game.config.lives - state.lives)}`.trim();
       $('red-lives').setAttribute('aria-label', `ライフ${state.lives}つ`);
@@ -86,31 +174,39 @@
     }
 
     if (statusChanged) {
-      if (state.status === 'ready') $('red-status').textContent = 'スタートを押すと、ヨーヨーよけが始まります。';
-      if (playing) $('red-status').textContent = 'ゆびで浴衣の子を左右に動かして、ヨーヨーをよけよう！';
+      if (state.status === 'ready') $('red-status').textContent = state.day === 2 ? 'ひかるヨーヨーを3つ集めよう！' : 'スタートを押すと、ヨーヨーよけが始まります。';
+      if (playing) $('red-status').textContent = state.day === 2 ? 'ふつうのヨーヨーはよけて、ひかるヨーヨーをキャッチ！' : 'ゆびで浴衣の子を左右に動かして、ヨーヨーをよけよう！';
       if (state.status === 'paused') $('red-status').textContent = 'ゲームをひとやすみ。つづきから再開できます。';
       if (state.status === 'won') {
-        $('red-overlay-title').textContent = 'やったー！ クリア！ ✨';
-        $('red-overlay-text').textContent = `${game.config.duration}びょう、よけきったよ！ もういちど遊んでもいいよ。`;
-        $('red-status').textContent = `${game.config.duration}秒よけきってクリアしました！`;
+        $('red-overlay-title').textContent = state.day === 2 ? 'あかい光、みつけた！ ✨' : 'やったー！ クリア！ ✨';
+        $('red-overlay-text').textContent = state.day === 2 ?
+          '3つの光が ひとつになったよ。ふじさんに 光をとどけよう！' :
+          `${game.config.duration}びょう、よけきったよ！ もういちど遊んでもいいよ。`;
+        $('red-status').textContent = state.day === 2 ? '赤い光を3つ集めてクリア！' : `${game.config.duration}秒よけきってクリアしました！`;
       }
       if (state.status === 'lost') {
         $('red-overlay-title').textContent = 'もういっかい！';
-        $('red-overlay-text').textContent = `${state.elapsed.toFixed(1)}びょう、がんばったね。すぐにもういちど挑戦できるよ！`;
-        $('red-status').textContent = 'ライフがなくなりました。もういっかいボタンで再挑戦できます。';
+        $('red-overlay-text').textContent = state.day === 2 && state.lossReason === 'time' ?
+          `ひかりは${state.collected}つ！ あとすこし！もういっかい あつめよう！` :
+          `${state.elapsed.toFixed(1)}びょう、がんばったね。すぐにもういちど挑戦できるよ！`;
+        $('red-status').textContent = state.lossReason === 'time' ?
+          '30秒が過ぎました。もういちど光を集めよう！' :
+          'ライフがなくなりました。もういっかいボタンで再挑戦できます。';
       }
       if (focus && state.status === 'paused') $('red-resume').focus({ preventScroll: true });
       if (focus && (state.status === 'won' || state.status === 'lost')) {
         $('red-overlay-title').tabIndex = -1;
         $('red-overlay-title').focus({ preventScroll: true });
       }
+    } else if (collectedChanged && playing && state.day === 2) {
+      $('red-status').textContent = `ひかりを${state.collected}つ集めた！ ${state.collected === 2 ? 'あとひとつ！' : ''}`;
     } else if (lifeChanged && playing) {
       $('red-status').textContent = `ヨーヨーに当たった！ ライフはあと${state.lives}つ。`;
     }
     if (state.status === 'paused') {
       pausePanel.querySelector('p').textContent = pauseReason || 'じゅんびができたら、つづきから遊ぼう。';
     }
-    previousStatus = state.status; previousLives = state.lives;
+    previousStatus = state.status; previousLives = state.lives; previousCollected = state.collected;
   }
 
   function draw() {
@@ -121,9 +217,27 @@
     for (const yoyo of state.yoyos) {
       const image = sprites.get(yoyo.type);
       if (!image || !image.complete || !image.naturalWidth) continue;
+      if (yoyo.glowing) {
+        const ball = window.HikariRedModel.yoyoBody(yoyo);
+        const radius = Math.max(45, ball.radius * 2.3);
+        const halo = brush.createRadialGradient(ball.x, ball.y, 4, ball.x, ball.y, radius);
+        halo.addColorStop(0, 'rgba(255,246,211,0.76)');
+        halo.addColorStop(.42, 'rgba(255,128,136,0.40)');
+        halo.addColorStop(1, 'rgba(255,128,136,0)');
+        brush.fillStyle = halo;
+        brush.beginPath(); brush.arc(ball.x, ball.y, radius, 0, Math.PI * 2); brush.fill();
+      }
       brush.save(); brush.translate(yoyo.x, yoyo.y); brush.rotate(yoyo.angle);
       brush.drawImage(image, -yoyo.size / 2, -yoyo.size / 2, yoyo.size, yoyo.size);
       brush.restore();
+      if (yoyo.glowing) {
+        const ball = window.HikariRedModel.yoyoBody(yoyo);
+        brush.textAlign = 'center'; brush.textBaseline = 'middle';
+        brush.font = 'bold 23px sans-serif';
+        brush.lineWidth = 3.5; brush.strokeStyle = '#fffce4';
+        brush.strokeText('★', ball.x, ball.y);
+        brush.fillStyle = '#f34d69'; brush.fillText('★', ball.x, ball.y);
+      }
     }
   }
   function resize() {
@@ -149,6 +263,7 @@
     const horizontal = Number(heldKeys.has('ArrowRight')) - Number(heldKeys.has('ArrowLeft'));
     if (horizontal) game.movePlayer(horizontal * 360 * Math.min(seconds, .1));
     game.step(seconds);
+    if (game.state.day === 2 && game.state.status === 'won' && !celebrating) beginCelebration();
     draw(); syncView({ focus: true });
     if (game.state.status === 'playing') frameId = requestAnimationFrame(animate);
     else releaseControls();
@@ -165,6 +280,7 @@
   function start() {
     if (!assetsReady || !brush || !entered || document.hidden) return;
     stopFrame(); releaseControls(); pauseReason = '';
+    cancelCelebration(); catchEffect.hidden = true;
     game.start(); draw(); syncView(); arena.focus({ preventScroll: true }); schedule();
   }
   async function prepareAssets() {
@@ -243,18 +359,23 @@
   else window.addEventListener('resize', resize);
 
   window.HikariRedGame = Object.freeze({
-    enter() {
+    enter(day) {
+      const priorDay = game.state.day;
+      game.setDay(day);
+      if (priorDay !== game.state.day) {
+        cancelCelebration(); catchEffect.hidden = true;
+        previousStatus = ''; previousLives = -1; previousTime = ''; previousCollected = -1;
+      }
+      configureDay();
       entered = true; resize(); syncView();
       if (!assetsReady) prepareAssets();
     },
     leave() {
       entered = false;
+      cancelCelebration();
       pause(); stopFrame(); releaseControls();
     }
   });
-  const startHeading = startPanel.querySelector('h2');
-  if (startHeading) startHeading.textContent = `${game.config.duration}びょう よけよう！`;
-  $('red-start-rules').replaceChildren(`ライフは${game.config.lives}つ。大きいヨーヨーも来るよ。`, document.createElement('br'), 'パソコンは左右の矢印キーでも遊べます。');
-  $('red-rule-summary').textContent = `${game.config.duration}秒・ライフ${game.config.lives}つのおためし。受付の提灯との連動はまだありません。`;
+  configureDay();
   resize(); syncView(); prepareAssets();
 })();
