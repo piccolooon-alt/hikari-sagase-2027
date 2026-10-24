@@ -138,7 +138,8 @@
       let x, y, aimX;
       if (glowing) {
         // Easy-to-read vertical approach: no sudden sideways movement into the girl.
-        x = range(100, 260); y = -size * .34; aimX = x;
+        x = Math.floor(state.spawned / 2) % 2 === 0 ? range(72, 94) : range(266, 288);
+        y = -size * .34; aimX = x;
       } else if (direction === 'left' || direction === 'right') {
         x = direction === 'left' ? -size * .55 : WIDTH + size * .55;
         const top = state.height * .08;
