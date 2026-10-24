@@ -245,15 +245,22 @@ run('day two keeps the gentle 30-second pace and replaces hazards with visible g
     game.step(.05);
     for (const yoyo of game.state.yoyos) if (!seen.has(yoyo.id)) {
       seen.add(yoyo.id);
-      if (yoyo.glowing) glowing.push({ ...yoyo });
+      if (yoyo.glowing) glowing.push({ ...yoyo, appearedAt: game.state.elapsed - yoyo.age });
     }
   }
   assert.equal(game.config.duration, 30);
   assert.equal(game.config.lives, 1000);
   assert.ok(game.state.spawned >= 16 && game.state.spawned <= 20, 'the total count stays near day one');
   assert.equal(glowing.length, 6, 'six glowing yoyos offer double the three-catch goal');
-  assert.deepEqual(glowing.map(light => light.id), [1, 4, 7, 10, 13, 16],
+  assert.deepEqual(glowing.map(light => light.id), [1, 4, 8, 10, 13, 16],
     'catch opportunities are spread across the full round');
+  assert.ok(glowing.slice(0, 2).every(light => light.appearedAt < 15),
+    'the first two glow opportunities appear before 15 seconds');
+  assert.ok(glowing[2].appearedAt >= 15,
+    'the third glow cannot appear before 15 seconds');
+  assert.ok(glowing[2].appearedAt < 18,
+    'the third glow still arrives shortly after 15 seconds');
+
   for (const light of glowing) {
     assert.equal(light.direction, 'top');
     assert.equal(light.large, false);
@@ -263,6 +270,25 @@ run('day two keeps the gentle 30-second pace and replaces hazards with visible g
   assert.ok(game.state.collected < 3, 'standing in the center does not automatically complete the round');
   assert.equal(game.state.status, 'lost');
   assert.equal(game.state.lossReason, 'time');
+});
+
+run('natural three-light clear happens after 15 seconds without changing the instant-catch rule', () => {
+  const game = createGame({ random: random(2), config: { lives: 1000 } });
+  game.setDay(2);
+  game.start();
+  let collectedBefore15 = 0;
+  while (game.state.status === 'playing') {
+    const target = game.state.yoyos.filter(yoyo => yoyo.glowing).sort((a, b) => a.id - b.id)[0];
+    if (target) game.setTargetX(yoyoBody(target).x);
+    game.step(.05);
+    if (game.state.elapsed < 15) collectedBefore15 = Math.max(collectedBefore15, game.state.collected);
+  }
+  assert.ok(collectedBefore15 <= 2, 'the third collectible is not available in the first 15 seconds');
+  assert.equal(game.state.status, 'won', 'a player can still collect three lights within the 30-second round');
+  assert.equal(game.state.winReason, 'light');
+  assert.equal(game.state.collected, 3);
+  assert.ok(game.state.elapsed >= 15 && game.state.elapsed < 30);
+  assert.ok(game.state.remaining > 0, 'finishing needs three catches, not waiting for 30 seconds');
 });
 
 run('three caught glowing balloons immediately win on day two with three hearts intact', () => {
