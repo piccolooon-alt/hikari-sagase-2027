@@ -15,16 +15,47 @@
   arena.append(hitEffect);
   const catchEffect = document.createElement('div');
   catchEffect.id = 'red-catch-effect';
-  catchEffect.textContent = '✦';
   catchEffect.hidden = true;
   catchEffect.setAttribute('aria-hidden', 'true');
+  const catchCore = document.createElement('span');
+  catchCore.className = 'red-catch-core';
+  catchCore.textContent = '✦';
+  catchEffect.append(catchCore);
+  for (let i = 0; i < 9; i++) {
+    const piece = document.createElement('span');
+    piece.className = 'red-catch-particle';
+    piece.textContent = i === 3 ? '♥' : i % 3 === 0 ? '✧' : '✦';
+    const angle = i / 9 * Math.PI * 2;
+    piece.style.setProperty('--dx', `${(Math.cos(angle) * (34 + i % 3 * 8)).toFixed(1)}px`);
+    piece.style.setProperty('--dy', `${(Math.sin(angle) * (34 + i % 3 * 8)).toFixed(1)}px`);
+    piece.style.setProperty('--delay', `${(i % 3 * .04).toFixed(2)}s`);
+    catchEffect.append(piece);
+  }
   arena.append(catchEffect);
-  catchEffect.addEventListener('animationend', () => { catchEffect.hidden = true; });
+  catchEffect.addEventListener('animationend', event => {
+    if (event.target === catchEffect) catchEffect.hidden = true;
+  });
   const celebration = document.createElement('div');
   celebration.id = 'red-celebration';
   celebration.setAttribute('aria-hidden', 'true');
   celebration.hidden = true;
   celebration.innerHTML = '<span class="red-light-orb red-light-one"></span><span class="red-light-orb red-light-two"></span><span class="red-light-orb red-light-three"></span><span class="red-light-core"></span><span class="red-light-trail"></span>';
+  // Small, capped set of CSS-only stars and tiny hearts for the four-second ending.
+  // They are created only once, not every animation frame.
+  for (let i = 0; i < 26; i++) {
+    const sparkle = document.createElement('span');
+    sparkle.className = 'red-celebration-particle' + (i % 9 === 0 ? ' red-celebration-heart' : '');
+    sparkle.textContent = i % 9 === 0 ? '♥' : i % 4 === 0 ? '✧' : '✦';
+    const angle = i * 2.3999632297;
+    const spread = 42 + (i % 6) * 14;
+    sparkle.style.setProperty('--sx', `${(Math.cos(angle) * spread).toFixed(1)}px`);
+    sparkle.style.setProperty('--sy', `${(Math.sin(angle) * spread * .8).toFixed(1)}px`);
+    sparkle.style.setProperty('--drift', `${((i % 2 ? -1 : 1) * (12 + i % 5 * 6)).toFixed(1)}px`);
+    sparkle.style.setProperty('--lift', `${70 + i % 6 * 18}px`);
+    sparkle.style.setProperty('--delay', `${(.22 + i % 9 * .18).toFixed(2)}s`);
+    sparkle.style.setProperty('--size', `${10 + i % 4 * 3}px`);
+    celebration.append(sparkle);
+  }
   arena.append(celebration);
   const overlay = $('red-overlay');
   const startPanel = $('red-start-panel');
@@ -140,6 +171,12 @@
     if (collectedChanged) {
       $('red-light-stars').textContent = '★'.repeat(state.collected) + '☆'.repeat(window.HikariRedModel.LIGHT_GOAL - state.collected);
       $('red-light-stars').setAttribute('aria-label', `光${state.collected}こ`);
+      const stars = $('red-light-stars');
+      stars.classList.remove('red-star-bounce');
+      if (state.day === 2 && state.collected > 0) {
+        void stars.offsetWidth;
+        stars.classList.add('red-star-bounce');
+      }
       if (state.day === 2 && state.collected > 0 && state.lastCollected) {
         catchEffect.style.left = `${state.lastCollected.x / state.width * 100}%`;
         catchEffect.style.top = `${state.lastCollected.y / state.height * 100}%`;
@@ -194,7 +231,7 @@
           'ライフがなくなりました。もういっかいボタンで再挑戦できます。';
       }
       if (focus && state.status === 'paused') $('red-resume').focus({ preventScroll: true });
-      if (focus && (state.status === 'won' || state.status === 'lost')) {
+      if (focus && !celebrating && (state.status === 'won' || state.status === 'lost')) {
         $('red-overlay-title').tabIndex = -1;
         $('red-overlay-title').focus({ preventScroll: true });
       }
@@ -209,6 +246,83 @@
     previousStatus = state.status; previousLives = state.lives; previousCollected = state.collected;
   }
 
+  function drawTinyStar(x, y, radius, alpha, rotation) {
+    brush.save();
+    brush.translate(x, y);
+    brush.rotate(rotation);
+    brush.globalAlpha = Math.min(.98, Math.max(0, alpha));
+    brush.fillStyle = '#fff9db';
+    brush.shadowColor = '#ffb8d5';
+    brush.shadowBlur = 8;
+    brush.beginPath();
+    brush.moveTo(0, -radius);
+    brush.quadraticCurveTo(radius * .20, -radius * .20, radius, 0);
+    brush.quadraticCurveTo(radius * .20, radius * .20, 0, radius);
+    brush.quadraticCurveTo(-radius * .20, radius * .20, -radius, 0);
+    brush.quadraticCurveTo(-radius * .20, -radius * .20, 0, -radius);
+    brush.closePath();
+    brush.fill();
+    brush.restore();
+  }
+  function drawGlowingYoyo(ball, yoyo, time) {
+    // Canvas effects are visual only: the original PNG, speed and collision stay unchanged.
+    const phase = time * 2.8 + yoyo.id * .82;
+    const pulse = (Math.sin(phase) + 1) / 2;
+    const haloRadius = Math.max(49, ball.radius * 2.55);
+    const halo = brush.createRadialGradient(ball.x, ball.y, ball.radius * .5, ball.x, ball.y, haloRadius);
+    halo.addColorStop(0, 'rgba(255,243,220,0.15)');
+    halo.addColorStop(.42, `rgba(255,197,220,${(.24 + pulse * .14).toFixed(3)})`);
+    halo.addColorStop(.73, `rgba(255,151,183,${(.26 + pulse * .16).toFixed(3)})`);
+    halo.addColorStop(1, 'rgba(255,151,183,0)');
+    brush.fillStyle = halo;
+    brush.beginPath();
+    brush.arc(ball.x, ball.y, haloRadius, 0, Math.PI * 2);
+    brush.fill();
+  }
+  function drawGlowingDetails(ball, yoyo, time) {
+    const phase = time * 2.8 + yoyo.id * .82;
+    const pulse = (Math.sin(phase) + 1) / 2;
+    brush.save();
+    brush.shadowColor = '#ffe7bf';
+    brush.shadowBlur = 12 + pulse * 6;
+    brush.strokeStyle = `rgba(255,231,186,${(.62 + pulse * .32).toFixed(3)})`;
+    brush.lineWidth = 2.2 + pulse * .6;
+    brush.beginPath();
+    brush.arc(ball.x, ball.y, ball.radius + 4.5, 0, Math.PI * 2);
+    brush.stroke();
+    brush.setLineDash([2.5, 8]);
+    brush.lineWidth = 1.5;
+    brush.strokeStyle = `rgba(255,189,225,${(.6 + pulse * .28).toFixed(3)})`;
+    brush.beginPath();
+    brush.arc(ball.x, ball.y, ball.radius + 10, 0, Math.PI * 2);
+    brush.stroke();
+    brush.restore();
+
+    // Orbiting four-point sparkles: a handful per balloon, no generated image files.
+    for (let i = 0; i < 7; i++) {
+      const angle = i * Math.PI * 2 / 7 + phase * .32;
+      const distance = ball.radius + 15 + (i % 3) * 6;
+      const x = ball.x + Math.cos(angle) * distance;
+      const y = ball.y + Math.sin(angle) * distance;
+      const twinkle = (Math.sin(phase * 1.5 + i * 1.8) + 1) / 2;
+      drawTinyStar(x, y, 3 + twinkle * 3.2, .35 + twinkle * .62, angle);
+    }
+    // A soft sweep across the rubber-ball surface keeps the original patterns visible.
+    drawTinyStar(ball.x - ball.radius * .44, ball.y - ball.radius * .52,
+      5 + pulse * 2.5, .44 + pulse * .35, phase * .14);
+    brush.save();
+    brush.textAlign = 'center';
+    brush.textBaseline = 'middle';
+    brush.font = 'bold 23px sans-serif';
+    brush.lineWidth = 3.5;
+    brush.strokeStyle = '#fffce4';
+    brush.shadowColor = '#fff2bf';
+    brush.shadowBlur = 9;
+    brush.strokeText('★', ball.x, ball.y);
+    brush.fillStyle = '#f34d69';
+    brush.fillText('★', ball.x, ball.y);
+    brush.restore();
+  }
   function draw() {
     if (!brush) return;
     const state = game.state;
@@ -217,27 +331,12 @@
     for (const yoyo of state.yoyos) {
       const image = sprites.get(yoyo.type);
       if (!image || !image.complete || !image.naturalWidth) continue;
-      if (yoyo.glowing) {
-        const ball = window.HikariRedModel.yoyoBody(yoyo);
-        const radius = Math.max(45, ball.radius * 2.3);
-        const halo = brush.createRadialGradient(ball.x, ball.y, 4, ball.x, ball.y, radius);
-        halo.addColorStop(0, 'rgba(255,246,211,0.76)');
-        halo.addColorStop(.42, 'rgba(255,128,136,0.40)');
-        halo.addColorStop(1, 'rgba(255,128,136,0)');
-        brush.fillStyle = halo;
-        brush.beginPath(); brush.arc(ball.x, ball.y, radius, 0, Math.PI * 2); brush.fill();
-      }
+      const lightBall = yoyo.glowing ? window.HikariRedModel.yoyoBody(yoyo) : null;
+      if (lightBall) drawGlowingYoyo(lightBall, yoyo, state.elapsed);
       brush.save(); brush.translate(yoyo.x, yoyo.y); brush.rotate(yoyo.angle);
       brush.drawImage(image, -yoyo.size / 2, -yoyo.size / 2, yoyo.size, yoyo.size);
       brush.restore();
-      if (yoyo.glowing) {
-        const ball = window.HikariRedModel.yoyoBody(yoyo);
-        brush.textAlign = 'center'; brush.textBaseline = 'middle';
-        brush.font = 'bold 23px sans-serif';
-        brush.lineWidth = 3.5; brush.strokeStyle = '#fffce4';
-        brush.strokeText('★', ball.x, ball.y);
-        brush.fillStyle = '#f34d69'; brush.fillText('★', ball.x, ball.y);
-      }
+      if (lightBall) drawGlowingDetails(lightBall, yoyo, state.elapsed);
     }
   }
   function resize() {
