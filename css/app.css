@@ -236,6 +236,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .red-game-stat[hidden],#red-catch-effect[hidden],#red-celebration[hidden]{display:none!important}
 #red-preview[data-game-day="2"] .red-preview-title{font-size:clamp(17px,5.0cqw,25px)}
 #red-preview[data-game-day="2"] .red-game-hud{left:3%;right:3%;gap:4px}
+#red-preview[data-game-day="2"] .red-game-stat:first-child span:last-child{display:none} /* compact three-part HUD on 360px phones */
 #red-preview[data-game-day="2"] .red-game-stat{gap:3px;padding:7px 6px;border-radius:12px}
 #red-preview[data-game-day="2"] .red-game-stat span{font-size:clamp(9px,2.6cqw,12px)}
 #red-preview[data-game-day="2"] .red-game-stat strong{font-size:clamp(15px,4.3cqw,21px)}
