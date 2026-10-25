@@ -18,7 +18,11 @@ run('day one serves six single-item orders with exactly thirty seconds and three
   assert.equal(g.state.order.length, 1);
   while(g.state.status==='playing') {
     assert.equal(g.state.order.length, 1);
-    g.chooseItem(g.state.order[0]); advance(g, .75);
+    const servedSoFar = g.state.completed;
+    g.chooseItem(g.state.order[0]);
+    assert.equal(g.state.readyToServe, true);
+    assert.equal(g.state.completed, servedSoFar, 'preparing a dish does not complete the order');
+    g.serveOrder(); advance(g, .75);
   }
   assert.equal(g.state.status,'won'); assert.equal(g.state.completed,6); assert.equal(g.state.lives,3);
   assert.ok(g.state.remaining>0);
@@ -30,7 +34,9 @@ run('day two requires two distinct items in the displayed order for four custome
     assert.notEqual(first,second);
     g.chooseItem(first);assert.deepEqual(g.state.selected,[first]);
     assert.equal(g.state.completed,count);
-    g.chooseItem(second);assert.equal(g.state.completed,count+1);
+    g.chooseItem(second);assert.equal(g.state.completed,count);
+    assert.equal(g.state.readyToServe,true,'both items are now prepared');
+    g.serveOrder();assert.equal(g.state.completed,count+1);
     if(count<RULES[2].goal-1)advance(g,.75);
   }
   assert.equal(g.state.status,'won'); assert.equal(g.state.lives,3);
@@ -54,7 +60,8 @@ run('timer expiry fails the round and cannot create a win',()=>{
 });
 run('pause suspends both order interlude and timer until resuming',()=>{
   const g=createGame({random:seeded(31)});g.start();
-  g.chooseItem(g.state.order[0]);const wait=g.state.interlude,remaining=g.state.remaining;
+  g.chooseItem(g.state.order[0]);g.serveOrder();
+  const wait=g.state.interlude,remaining=g.state.remaining;
   g.pause();advance(g,10);assert.equal(g.state.remaining,remaining);
   assert.equal(g.state.interlude,wait);
   g.resume();advance(g, .75);assert.equal(g.state.interlude,0);
@@ -73,8 +80,25 @@ run('retries clear hearts, orders, progress and timer without switching the sele
 run('serving interlude prevents accidental double taps',()=>{
   const g=createGame({random:seeded(11)});g.start();
   const product=g.state.order[0];g.chooseItem(product);
-  assert.equal(g.state.completed,1);
-  g.chooseItem(product);assert.equal(g.state.completed,1);
+  assert.equal(g.state.completed,0);
+  assert.equal(g.state.readyToServe,true);
+  g.chooseItem(product);assert.equal(g.state.completed,0,'completed dishes cannot be counted by double-tap');
+  g.serveOrder();assert.equal(g.state.completed,1);
+  g.serveOrder();assert.equal(g.state.completed,1,'a served order can only count once');
   assert.equal(g.state.lives,3);
+});
+run('random guests change independently of food and lantern progress counts only service',()=>{
+  const g=createGame({random:seeded(57)});g.start();
+  const firstGuest=g.state.guest,firstOrder=g.state.order[0];
+  assert.ok(firstGuest);
+  g.serveOrder();assert.equal(g.state.completed,0,'cannot serve an empty tray');
+  g.chooseItem(firstOrder);assert.equal(g.state.completed,0,'preparing is not a served order');
+  assert.equal(g.state.combo,1);
+  g.serveOrder();assert.equal(g.state.completed,1,'handing the meal over lights a lantern');
+  advance(g,.75);
+  assert.notEqual(g.state.guest,firstGuest,'next guest is visually different');
+  const wrong=ITEMS.find(x=>x.id!==g.state.order[0]).id;
+  g.chooseItem(wrong);
+  assert.equal(g.state.combo,0,'a mistake resets the combo');
 });
 console.log(passed + ' blue-game model scenarios passed.');

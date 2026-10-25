@@ -8,10 +8,36 @@
   const $ = id => root.querySelector('#' + id);
   const buttons = [...root.querySelectorAll('[data-blue-item]')];
   const itemById = new Map(model.ITEMS.map(item => [item.id, item]));
+  const guestById = new Map(model.GUESTS.map(guest => [guest.id, guest]));
   const orderBox = $('blue-order');
   const overlay = $('blue-overlay');
   const startPanel = $('blue-start-panel'), pausePanel = $('blue-pause-panel'), resultPanel = $('blue-result-panel');
-  let entered = false, frameId = 0, lastFrame = 0, renderOrderKey = '';
+  let entered = false, frameId = 0, lastFrame = 0;
+  let renderOrderKey = '', renderTrayKey = '', renderGuestKey = '', renderLanternKey = '';
+  let audioContext = null;
+  function sound(kind) {
+    // As in the 2026 festival, little game sounds reward a tap or a serving.
+    // They respect the existing common BGM control and never block play.
+    if (document.getElementById('bgm-toggle')?.getAttribute('aria-pressed') !== 'true') return;
+    try {
+      const Engine = window.AudioContext || window.webkitAudioContext;
+      if (!Engine) return;
+      if (!audioContext) audioContext = new Engine();
+      if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+      const frequencies = { pick: 660, ready: 840, serve: 1040, miss: 220 };
+      const now = audioContext.currentTime;
+      const oscillator = audioContext.createOscillator(), volume = audioContext.createGain();
+      oscillator.type = kind === 'miss' ? 'triangle' : 'sine';
+      oscillator.frequency.setValueAtTime(frequencies[kind] || 660, now);
+      if (kind === 'serve') oscillator.frequency.exponentialRampToValueAtTime(1320, now + .16);
+      const length = kind === 'serve' ? .23 : .12;
+      volume.gain.setValueAtTime(.0001, now);
+      volume.gain.exponentialRampToValueAtTime(.032, now + .014);
+      volume.gain.exponentialRampToValueAtTime(.0001, now + length);
+      oscillator.connect(volume); volume.connect(audioContext.destination);
+      oscillator.start(now); oscillator.stop(now + length + .02);
+    } catch (_) { /* Audio is optional. */ }
+  }
   function stopFrame() {
     if (frameId) cancelAnimationFrame(frameId);
     frameId = 0; lastFrame = 0;
@@ -40,6 +66,55 @@
       (state.day === 2 ? items.join(' → ') + ' のじゅんばんで！' : items[0] + ' をタップ！') :
       'ちゅうもんを よく見てね！';
   }
+  function refreshExtras() {
+    const state = game.state, rules = model.RULES[state.day];
+    const trayKey = state.order.join(':') + '|' + state.selected.join(':') + '|' + state.readyToServe;
+    if (renderTrayKey !== trayKey) {
+      renderTrayKey = trayKey;
+      const tray = $('blue-tray');
+      tray.replaceChildren();
+      if (!state.selected.length) {
+        tray.textContent = '✨ ここでじゅんび！';
+        tray.classList.remove('blue-tray-ready');
+      } else {
+        for (const id of state.selected) {
+          const item = document.createElement('span');
+          item.className = 'blue-tray-food';
+          item.textContent = itemById.get(id).emoji;
+          item.setAttribute('role', 'img');
+          item.setAttribute('aria-label', itemById.get(id).label);
+          tray.append(item);
+        }
+        tray.classList.toggle('blue-tray-ready', state.readyToServe);
+      }
+    }
+    if (renderGuestKey !== state.guest) {
+      renderGuestKey = state.guest;
+      const guest = guestById.get(state.guest) || model.GUESTS[0];
+      $('blue-guest-emoji').textContent = guest.emoji;
+      $('blue-guest-name').textContent = guest.label + ' のちゅうもん';
+      $('blue-guest-line').textContent = guest.phrase;
+      $('blue-guest-emoji').classList.remove('blue-guest-pop');
+      void $('blue-guest-emoji').offsetWidth;
+      $('blue-guest-emoji').classList.add('blue-guest-pop');
+    }
+    const lanternKey = state.day + '|' + state.completed;
+    if (renderLanternKey !== lanternKey) {
+      renderLanternKey = lanternKey;
+      const row = $('blue-lantern-progress');
+      const lamps = [];
+      for (let i = 0; i < rules.goal; i++) {
+        const lamp = document.createElement('span');
+        lamp.className = 'blue-mini-lantern' + (i < state.completed ? ' lit' : '');
+        lamp.textContent = '🏮';
+        lamps.push(lamp);
+      }
+      row.replaceChildren(...lamps);
+    }
+    $('blue-combo').textContent = String(state.combo);
+    $('blue-serve').disabled = state.status !== 'playing' || !state.readyToServe || state.interlude > 0;
+    $('blue-serve').classList.toggle('blue-serve-ready', !($('blue-serve').disabled));
+  }
   function configureDay() {
     const day = game.state.day;
     root.dataset.gameDay = String(day);
@@ -65,16 +140,17 @@
     $('blue-lives').setAttribute('aria-label', 'ライフ' + state.lives + 'つ');
     $('blue-pause').disabled = !playing;
     buttons.forEach(button => {
-      button.disabled = !playing || state.interlude > 0;
+      button.disabled = !playing || state.interlude > 0 || state.readyToServe;
       button.classList.toggle('blue-selected', state.selected.includes(button.dataset.blueItem));
       button.setAttribute('aria-pressed', String(state.selected.includes(button.dataset.blueItem)));
     });
     $('blue-feedback').textContent = state.feedbackTime > 0 && playing ? state.feedback : '';
     $('blue-feedback').dataset.kind = state.feedbackKind;
     refreshOrder();
+    refreshExtras();
     if (state.status === 'won') {
       $('blue-result-title').textContent = 'やったー！ おみせやさん名人！ ✨';
-      $('blue-result-text').textContent = rules.goal + 'くみの注文がそろったよ！ 青い光、みつけた！';
+      $('blue-result-text').textContent = rules.goal + 'くみの注文をおわたしできたよ！ さいこうコンボ ' + state.bestCombo + '！ 青い光、みつけた！';
       $('blue-result-ornament').textContent = '💙 ✨ 🎉 ✨ 💙';
     } else if (state.status === 'lost') {
       $('blue-result-title').textContent = 'もういっかい！ 🍧';
@@ -102,17 +178,28 @@
   }
   function start() {
     if (!entered || document.hidden) return;
-    stopFrame(); game.start(); renderOrderKey = ''; sync(); schedule();
+    stopFrame(); game.start(); renderOrderKey = ''; renderTrayKey = ''; renderGuestKey = ''; renderLanternKey = ''; sync(); schedule();
   }
   function pause() {
     if (game.state.status !== 'playing') return;
     game.pause(); stopFrame(); sync({ focus: entered && !document.hidden });
   }
-  buttons.forEach(button => button.addEventListener('click', () => {
+  function chooseFromButton(id) {
     if (!entered || document.hidden) return;
-    game.chooseItem(button.dataset.blueItem);
+    const before = game.state.selected.length, livesBefore = game.state.lives;
+    game.chooseItem(id);
+    if (game.state.lives < livesBefore) sound('miss');
+    else if (game.state.selected.length > before) sound(game.state.readyToServe ? 'ready' : 'pick');
     sync({ focus: true });
-  }));
+  }
+  buttons.forEach(button => button.addEventListener('click', () => chooseFromButton(button.dataset.blueItem)));
+  $('blue-serve').addEventListener('click', () => {
+    if (!entered || document.hidden) return;
+    const previousCompleted = game.state.completed;
+    game.serveOrder();
+    if (game.state.completed > previousCompleted) sound('serve');
+    sync({ focus: true });
+  });
   $('blue-start').addEventListener('click', start);
   $('blue-retry').addEventListener('click', start);
   $('blue-pause').addEventListener('click', pause);
@@ -123,17 +210,22 @@
   window.addEventListener('keydown', event => {
     if (!entered || document.hidden || event.altKey || event.ctrlKey || event.metaKey) return;
     if (event.key === 'Escape') { if (game.state.status === 'playing') { event.preventDefault(); pause(); } return; }
-    if (game.state.status !== 'playing' || !['1','2','3','4'].includes(event.key)) return;
+    if (game.state.status !== 'playing') return;
+    if (event.key === 'Enter' && game.state.readyToServe) {
+      event.preventDefault(); game.serveOrder(); sound('serve'); sync({ focus: true }); return;
+    }
+    if (!['1','2','3','4'].includes(event.key)) return;
     event.preventDefault();
-    game.chooseItem(buttons[Number(event.key)-1].dataset.blueItem);
-    sync({ focus: true });
+    chooseFromButton(buttons[Number(event.key)-1].dataset.blueItem);
   });
   window.addEventListener('blur', () => { if (entered) pause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && entered) pause(); });
   window.HikariBlueGame = Object.freeze({
     enter(day) {
       game.setDay(day);
-      configureDay(); entered = true; renderOrderKey = ''; sync();
+      configureDay(); entered = true;
+      renderOrderKey = ''; renderTrayKey = ''; renderGuestKey = ''; renderLanternKey = '';
+      sync();
     },
     leave() {
       entered = false; pause(); stopFrame();

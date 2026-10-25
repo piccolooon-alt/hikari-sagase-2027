@@ -279,6 +279,7 @@ async function blueRoundFlow(browser, base) {
         await active(page, 'blue-preview');
         await resources(page);
         assert.equal(await page.locator('[data-blue-item]').count(), 4);
+        assert.equal(await page.locator('#blue-serve').isDisabled(), true);
         assert.equal(await page.locator('#blue-preview').getAttribute('data-game-day'), String(day));
         assert.equal(await page.locator('#blue-preview-back').isVisible(), true);
         await snapshot(page, '390-blue-day' + day + '-ready');
@@ -295,17 +296,26 @@ async function blueRoundFlow(browser, base) {
             assert.ok(id, 'known festival food label ' + label);
             await page.locator(`[data-blue-item="${id}"]`).tap();
           }
+          assert.equal(await page.locator('#blue-serve').isEnabled(), true, 'the tray is ready after choosing every item');
+          assert.equal(await page.locator('#blue-score').innerText(), round + ' / ' + (day === 1 ? 6 : 4),
+            'preparing alone does not light a lantern');
           if (round === 1) await snapshot(page, '390-blue-day' + day + '-playing');
+          await page.locator('#blue-serve').tap();
+          assert.equal(await page.locator('.blue-mini-lantern.lit').count(), round + 1,
+            'one lantern lights when the customer receives an order');
           if (round < (day === 1 ? 5 : 3)) await page.clock.runFor(850);
         }
         assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'), 'won');
         assert.match(await page.locator('#blue-result-title').innerText(), /名人/);
+        assert.match(await page.locator('#blue-result-text').innerText(), /おわたし/);
         assert.equal(await page.locator('#blue-time').innerText() !== '0.0', true);
         assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'), 'common',
           'blue uses shared BGM until a dedicated track is approved');
         await snapshot(page, '390-blue-day' + day + '-clear');
         await page.locator('#blue-retry').tap();
         assert.equal(await page.locator('#blue-score').innerText(), '0 / ' + (day === 1 ? 6 : 4));
+        assert.equal(await page.locator('.blue-mini-lantern.lit').count(), 0);
+        assert.equal(await page.locator('#blue-serve').isDisabled(), true);
         assert.match(await page.locator('#blue-lives').innerText(), /♥/);
         await page.locator('#blue-pause').tap();
         assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'), 'paused');
