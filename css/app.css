@@ -479,7 +479,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .blue-pause{min-width:100px;min-height:42px;border-radius:999px;background:#e7f7ff;color:#245c85;border:0;font-weight:800;cursor:pointer;padding:7px 9px}
 .blue-pause:disabled{opacity:.55}
 #blue-game-note{font-size:clamp(9px,2.5cqw,11px);color:#d4e8ff;line-height:1.4;margin:0;flex:1}
-.blue-overlay{position:absolute;inset:0;z-index:3;background:#0a2347b8;backdrop-filter:blur(5px);display:grid;place-items:center;padding:20px}
+.blue-overlay{position:absolute;inset:calc(env(safe-area-inset-top) + 65px) 0 0;z-index:3;background:#0a2347b8;backdrop-filter:blur(5px);display:grid;place-items:center;padding:20px}
 .blue-overlay[hidden],.blue-game-panel[hidden]{display:none}
 .blue-game-panel{text-align:center;width:min(100%,365px);padding:22px 18px;border:2px solid #e6debd;border-radius:26px;background:linear-gradient(158deg,#265c89,#192c5b);box-shadow:0 12px 30px #0007,0 0 30px #7acfff55;color:#fff}
 .blue-game-panel h2{font-size:clamp(20px,6cqw,29px);line-height:1.4;color:#ffedba;text-shadow:0 0 9px #ffe09f7c;margin:10px 0}
