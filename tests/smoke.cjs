@@ -264,6 +264,59 @@ async function mobileFlow(browser, base, viewport) {
   } finally { await context.close(); }
 }
 
+async function blueRoundFlow(browser, base) {
+  const names = ['かき氷', 'りんご飴', 'チョコバナナ', 'わたあめ'];
+  const ids = ['ice', 'apple', 'banana', 'candy'];
+  for (const day of [1, 2]) {
+    await run('blue stall ' + day + ': menu, ordered tapping, win and retry on mobile', async () => {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true
+      });
+      const page = await context.newPage();
+      const check = diagnostics(page, new URL(base).origin);
+      try {
+        await page.goto(`${base}index.html?day=${day}#blue`);
+        await active(page, 'blue-preview');
+        await resources(page);
+        assert.equal(await page.locator('[data-blue-item]').count(), 4);
+        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-day'), String(day));
+        assert.equal(await page.locator('#blue-preview-back').isVisible(), true);
+        await snapshot(page, '390-blue-day' + day + '-ready');
+        await page.clock.install();
+        await page.clock.pauseAt(new Date(Date.now() + 1000));
+        await page.locator('#blue-start').tap();
+        await page.waitForFunction(() => document.querySelector('#blue-preview').dataset.gameState === 'playing');
+        for (let round = 0; round < (day === 1 ? 6 : 4); round++) {
+          const expected = await page.locator('#blue-order .blue-order-item').evaluateAll(nodes =>
+            nodes.map(el => el.getAttribute('aria-label').replace(' 完了', '')));
+          assert.equal(expected.length, day);
+          for (const label of expected) {
+            const id = ids[names.indexOf(label)];
+            assert.ok(id, 'known festival food label ' + label);
+            await page.locator(`[data-blue-item="${id}"]`).tap();
+          }
+          if (round === 1) await snapshot(page, '390-blue-day' + day + '-playing');
+          if (round < (day === 1 ? 5 : 3)) await page.clock.runFor(850);
+        }
+        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'), 'won');
+        assert.match(await page.locator('#blue-result-title').innerText(), /名人/);
+        assert.equal(await page.locator('#blue-time').innerText() !== '0.0', true);
+        assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'), 'common',
+          'blue uses shared BGM until a dedicated track is approved');
+        await snapshot(page, '390-blue-day' + day + '-clear');
+        await page.locator('#blue-retry').tap();
+        assert.equal(await page.locator('#blue-score').innerText(), '0 / ' + (day === 1 ? 6 : 4));
+        assert.match(await page.locator('#blue-lives').innerText(), /♥/);
+        await page.locator('#blue-pause').tap();
+        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'), 'paused');
+        await page.locator('#blue-resume').tap();
+        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'), 'playing');
+        check();
+      } finally { await context.close(); }
+    });
+  }
+}
+
 async function dayTwoLightFlow(browser, base) {
   await run('day-two red game: three caught lights, gentle celebration, retry and day-one isolation', async () => {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -539,6 +592,7 @@ async function storageUnavailable(browser, base) {
     }
     await routeRegression(browser, base);
     await redRoundFlow(browser, base);
+    await blueRoundFlow(browser, base);
     await dayTwoLightFlow(browser, base);
     await projectorFlow(browser, base);
     await storageUnavailable(browser, base);
