@@ -1,80 +1,95 @@
-/* Offline deterministic tests for the two-day blue festival stall mini-game. */
+/* Offline tests for hands-on recipes, multiple customers and two festival days. */
 const assert = require('node:assert/strict');
-const { createGame, ITEMS, RULES } = require('../js/blue-game-model.js');
+const { createGame, ITEMS, CUSTOMERS, ACTIONS, RECIPES, RULES } = require('../js/blue-game-model.js');
 let passed = 0;
 function run(name, fn) { fn(); passed++; console.log('PASS ' + name); }
-function advance(game, seconds) { for (let i = 0; i < Math.ceil(seconds * 20); i++) game.step(Math.min(.05, seconds-i*.05)); }
-function seeded(seed) {
-  let x = seed >>> 0;
-  return () => { x = (Math.imul(x,1664525)+1013904223) >>> 0; return x / 4294967296; };
+function advance(game, seconds) {
+  let remaining = seconds;
+  while (remaining > 0) { const d = Math.min(.05, remaining); game.step(d); remaining -= d; }
 }
-run('four familiar summer festival foods are defined without personal or vendor data', () => {
-  assert.deepEqual(ITEMS.map(x=>x.label), ['かき氷','りんご飴','チョコバナナ','わたあめ']);
-  assert.equal(new Set(ITEMS.map(x=>x.id)).size, 4);
-  assert.equal(RULES[1].perOrder, 1); assert.equal(RULES[2].perOrder, 2);
-});
-run('day one serves six single-item orders with exactly thirty seconds and three lives', () => {
-  const g=createGame({ random: seeded(19) }); g.start();
-  assert.equal(g.state.order.length, 1);
-  while(g.state.status==='playing') {
-    assert.equal(g.state.order.length, 1);
-    g.chooseItem(g.state.order[0]); advance(g, .75);
+function seeded(seed) {
+  let x=seed>>>0;
+  return () => {x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};
+}
+function makeFood(game) {
+  const id=game.currentItem();
+  assert.ok(id);
+  for(const action of RECIPES[id]) {
+    assert.equal(game.expectedAction(),action);
+    assert.equal(game.state.choices.length,4);
+    assert.equal(new Set(game.state.choices).size,4);
+    assert.ok(game.state.choices.includes(action));
+    game.chooseItem(action);
   }
-  assert.equal(g.state.status,'won'); assert.equal(g.state.completed,6); assert.equal(g.state.lives,3);
-  assert.ok(g.state.remaining>0);
+}
+run('the four foods and five different festival customers are defined',()=>{
+  assert.deepEqual(ITEMS.map(i=>i.label),['かき氷','りんご飴','チョコバナナ','わたあめ']);
+  assert.equal(CUSTOMERS.length,5);
+  assert.ok(CUSTOMERS.some(i=>i.label==='中学生の女の子'));
+  assert.equal(RULES[1].perOrder,1);assert.equal(RULES[2].perOrder,2);
+  assert.ok(ACTIONS.some(x=>x.id==='serve'));
 });
-run('day two requires two distinct items in the displayed order for four customers',()=>{
-  const g=createGame({ random: seeded(27) }); g.setDay(2);g.start();
-  for(let count=0;count<RULES[2].goal;count++){
-    const [first,second]=g.state.order;
-    assert.notEqual(first,second);
-    g.chooseItem(first);assert.deepEqual(g.state.selected,[first]);
-    assert.equal(g.state.completed,count);
-    g.chooseItem(second);assert.equal(g.state.completed,count+1);
-    if(count<RULES[2].goal-1)advance(g,.75);
+run('shaved ice is assembled in bowl, ice, syrup, spoon and serving order',()=>{
+  assert.deepEqual(RECIPES.ice,['bowl','ice','syrup','spoon','serve']);
+  for(const item of ITEMS) assert.equal(RECIPES[item.id].at(-1),'serve');
+});
+run('three customers can be served on day one',()=>{
+  const g=createGame({random:seeded(19)});g.start();
+  for(let round=0;round<RULES[1].goal;round++){
+    assert.equal(g.state.order.length,1);
+    makeFood(g);
+    if(round<RULES[1].goal-1)advance(g,.7);
   }
-  assert.equal(g.state.status,'won'); assert.equal(g.state.lives,3);
+  assert.equal(g.state.status,'won');assert.equal(g.state.completed,RULES[1].goal);
 });
-run('wrong menu choice costs one heart and resets a partial order',()=>{
-  const g=createGame({random:seeded(8)});g.setDay(2);g.start();
-  const desired=g.state.order;
-  const wrong=ITEMS.find(x=>x.id!==desired[0]).id;
+run('two distinct food orders each for two customers on day two',()=>{
+  const g=createGame({random:seeded(11)});g.setDay(2);g.start();
+  for(let round=0;round<RULES[2].goal;round++){
+    assert.equal(g.state.order.length,2);
+    assert.notEqual(g.state.order[0],g.state.order[1]);
+    makeFood(g);assert.equal(g.state.selected.length,1);
+    makeFood(g);
+    if(round<RULES[2].goal-1)advance(g,.7);
+  }
+  assert.equal(g.state.status,'won');assert.equal(g.state.completed,RULES[2].goal);
+});
+run('different customers arrive in successive rounds',()=>{
+  const g=createGame({random:()=>0});g.start();
+  const first=g.state.customer.id;makeFood(g);advance(g,.7);
+  assert.notEqual(first,g.state.customer.id);
+  assert.equal(g.state.customer.label,'男の子');
+});
+run('wrong ingredient costs a life without restarting the already assembled item',()=>{
+  const g=createGame({random:seeded(5)});g.start();
+  const wrong=g.state.choices.find(x=>x!==g.expectedAction());
   g.chooseItem(wrong);
-  assert.equal(g.state.lives,2);assert.equal(g.state.selected.length,0);
-  g.chooseItem(desired[0]);assert.deepEqual(g.state.selected,[desired[0]]);
-  const wrongSecond=ITEMS.find(x=>x.id!==desired[1]).id;
-  g.chooseItem(wrongSecond);
-  assert.equal(g.state.lives,1);assert.deepEqual(g.state.selected,[]);
-  g.chooseItem(wrong);assert.equal(g.state.status,'lost');
+  assert.equal(g.state.lives,2);assert.equal(g.state.stage,0);
+  g.chooseItem(g.expectedAction());assert.equal(g.state.stage,1);
+  const wrong2=g.state.choices.find(x=>x!==g.expectedAction());
+  g.chooseItem(wrong2);assert.equal(g.state.stage,1);assert.equal(g.state.lives,1);
+  g.chooseItem(wrong2);assert.equal(g.state.status,'lost');
 });
-run('timer expiry fails the round and cannot create a win',()=>{
-  const g=createGame({random:seeded(1)});g.start();advance(g,30);
-  assert.equal(g.state.status,'lost');assert.equal(g.state.remaining,0);assert.equal(g.state.completed,0);
-  g.chooseItem(g.state.order[0]);assert.equal(g.state.status,'lost');
+run('pause prevents time moving and game can resume',()=>{
+  const g=createGame({random:seeded(7)});g.start();
+  g.chooseItem(g.expectedAction());const stage=g.state.stage,remaining=g.state.remaining;
+  g.pause();advance(g,10);
+  assert.equal(g.state.remaining,remaining);assert.equal(g.state.stage,stage);
+  g.resume();advance(g,.5);
+  assert.ok(g.state.remaining<remaining);
 });
-run('pause suspends both order interlude and timer until resuming',()=>{
-  const g=createGame({random:seeded(31)});g.start();
-  g.chooseItem(g.state.order[0]);const wait=g.state.interlude,remaining=g.state.remaining;
-  g.pause();advance(g,10);assert.equal(g.state.remaining,remaining);
-  assert.equal(g.state.interlude,wait);
-  g.resume();advance(g, .75);assert.equal(g.state.interlude,0);
-  assert.equal(g.state.completed,1);
+run('timeout and restart reset orders, progress, lives and stage',()=>{
+  const g=createGame({random:seeded(4)});g.setDay(2);g.start();
+  advance(g,RULES[2].duration);
+  assert.equal(g.state.status,'lost');assert.equal(g.state.remaining,0);
+  g.start();assert.equal(g.state.status,'playing');
+  assert.equal(g.state.remaining,RULES[2].duration);
+  assert.equal(g.state.stage,0);assert.equal(g.state.completed,0);
+  assert.equal(g.state.lives,3);assert.equal(g.state.order.length,2);
 });
-run('retries clear hearts, orders, progress and timer without switching the selected day',()=>{
-  const g=createGame({random:seeded(33)});g.setDay(2);g.start();
-  const wrong=ITEMS.find(x=>x.id!==g.state.order[0]).id;
-  g.chooseItem(wrong);assert.equal(g.state.lives,2);
-  g.start();assert.equal(g.state.day,2);assert.equal(g.state.lives,3);
-  assert.equal(g.state.completed,0);assert.equal(g.state.remaining,30);
-  assert.equal(g.state.order.length,2);assert.deepEqual(g.state.selected,[]);
-  g.setDay(1);assert.equal(g.state.status,'ready');assert.equal(g.state.order.length,0);
-  g.start();assert.equal(g.state.order.length,1);
-});
-run('serving interlude prevents accidental double taps',()=>{
-  const g=createGame({random:seeded(11)});g.start();
-  const product=g.state.order[0];g.chooseItem(product);
-  assert.equal(g.state.completed,1);
-  g.chooseItem(product);assert.equal(g.state.completed,1);
+run('interlude prevents double delivery',()=>{
+  const g=createGame({random:seeded(8)});g.start();
+  makeFood(g);const count=g.state.completed;
+  g.chooseItem('serve');assert.equal(g.state.completed,count);
   assert.equal(g.state.lives,3);
 });
-console.log(passed + ' blue-game model scenarios passed.');
+console.log(passed + ' blue-recipe scenarios passed.');
