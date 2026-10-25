@@ -207,21 +207,30 @@
   <div class="blue-game-layout">
     <div class="blue-game-top"><button id="blue-preview-back" class="qr-back" type="button">‹ もどる</button><span class="blue-demo-badge">🔵 おためしゲーム</span></div>
     <h1 class="blue-game-title">おまつりのおみせやさん！</h1>
-    <div class="blue-lanterns" aria-hidden="true"><span>🏮</span><span>✨</span><span>🏮</span><span>✨</span><span>🏮</span></div>
+    <div class="blue-lanterns" id="blue-lantern-progress" aria-hidden="true"></div>
     <div class="blue-game-hud" aria-label="青ゲームの進行">
       <div><small>のこり</small><strong id="blue-time">30.0</strong><small>びょう</small></div>
       <div><small>ちゅうもん</small><strong id="blue-score">0 / 6</strong></div>
       <div><small>ライフ</small><strong id="blue-lives" aria-label="ライフ3つ">♥ ♥ ♥</strong></div>
     </div>
+    <div class="blue-combo" aria-live="off"><span>✨ コンボ</span> <strong id="blue-combo">0</strong></div>
     <div class="blue-customer" aria-label="お客さんの注文">
-      <div class="blue-customer-avatar" aria-hidden="true">🧒</div>
+      <div class="blue-customer-avatar" id="blue-guest-emoji" aria-hidden="true">🧒</div>
       <div class="blue-speech">
-        <span class="blue-customer-caption">おきゃくさんの ちゅうもん</span>
+        <span class="blue-customer-caption" id="blue-guest-name">おきゃくさんの ちゅうもん</span>
         <div class="blue-order" id="blue-order" aria-live="polite"></div>
         <p class="blue-order-hint" id="blue-order-hint">注文をよく見てね！</p>
+        <p class="blue-guest-line" id="blue-guest-line">これ、ください！</p>
       </div>
     </div>
     <div class="blue-stall-sign" aria-hidden="true"><span>✧</span> すずらんの えんにちやさん <span>✧</span></div>
+    <div class="blue-prep-zone" aria-label="おわたしする商品">
+      <div class="blue-prep-tray">
+        <span class="blue-prep-caption">🍽️ おわたしのおさら</span>
+        <div class="blue-prep-foods" id="blue-tray" aria-live="polite">✨ ここでじゅんび！</div>
+      </div>
+      <button type="button" id="blue-serve" class="blue-serve-button" disabled>おわたし！ <span aria-hidden="true">🛍️</span></button>
+    </div>
     <div class="blue-menu" role="group" aria-label="商品を選ぶ">
       <button type="button" class="blue-food-button blue-food-ice" data-blue-item="ice"><span class="blue-food-icon" aria-hidden="true">🍧</span><span>かき氷</span></button>
       <button type="button" class="blue-food-button blue-food-apple" data-blue-item="apple"><span class="blue-food-icon" aria-hidden="true">🍎</span><span>りんご飴</span></button>
@@ -239,7 +248,7 @@
       <div class="blue-panel-ornament" aria-hidden="true">🎪 ✨ 🍧</div>
       <h2 id="blue-start-heading">ちゅうもんをそろえよう！</h2>
       <p id="blue-start-description">おきゃくさんの注文を見て、商品をタップしよう！</p>
-      <p class="blue-panel-small">30びょう・ライフ3つ<br>まちがえたらハートが1つへるよ</p>
+      <p class="blue-panel-small">30びょう・ライフ3つ<br>商品をそろえたら「おわたし！」を押してね。<br>まちがえたらハートが1つへるよ</p>
       <button type="button" id="blue-start" class="blue-game-primary">スタート！ ✨</button>
     </div>
     <div id="blue-pause-panel" class="blue-game-panel" hidden>
