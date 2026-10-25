@@ -43,6 +43,7 @@
   function configureDay() {
     const day = game.state.day;
     root.dataset.gameDay = String(day);
+    root.querySelector('.blue-demo-badge').textContent = '🔵 ' + day + '日目のおためし';
     $('blue-start-heading').textContent = day === 2 ? 'おみせやさんは大いそがし！' : 'ちゅうもんをそろえよう！';
     $('blue-start-description').textContent = day === 2 ?
       '2つの品物を、注文された順番でタップしよう！' :
@@ -83,7 +84,7 @@
       $('blue-result-ornament').textContent = '🍧 🍎 🍌';
     }
     if (focus && state.status === 'paused') $('blue-resume').focus({ preventScroll: true });
-    if (focus && (state.status === 'won' || state.status === 'lost')) $('blue-result-title').focus({ preventScroll: true });
+    if (focus && (state.status === 'won' || state.status === 'lost')) { $('blue-result-title').tabIndex = -1; $('blue-result-title').focus({ preventScroll: true }); }
   }
   function loop(now) {
     frameId = 0;
