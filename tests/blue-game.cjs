@@ -18,9 +18,10 @@ run('day one serves six single-item orders with exactly thirty seconds and three
   assert.equal(g.state.order.length, 1);
   while(g.state.status==='playing') {
     assert.equal(g.state.order.length, 1);
+    const servedSoFar = g.state.completed;
     g.chooseItem(g.state.order[0]);
     assert.equal(g.state.readyToServe, true);
-    assert.equal(g.state.completed, g.state.completed, 'serving is an explicit step');
+    assert.equal(g.state.completed, servedSoFar, 'preparing a dish does not complete the order');
     g.serveOrder(); advance(g, .75);
   }
   assert.equal(g.state.status,'won'); assert.equal(g.state.completed,6); assert.equal(g.state.lives,3);
