@@ -4,7 +4,7 @@
   "private": true,
   "description": "光をさがせ！ 2027 GitHub Pages 公開確認版（ビルド不要）",
   "scripts": {
-    "test": "node tests/red-game.cjs && node tests/smoke.cjs && node tests/red-collision-visual.cjs",
+    "test": "node tests/red-game.cjs && node tests/blue-game.cjs && node tests/smoke.cjs && node tests/red-collision-visual.cjs",
     "start": "python3 -m http.server 8000 --bind 127.0.0.1"
   },
   "devDependencies": {
