@@ -430,3 +430,76 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
     will-change:auto;
   }
 }
+
+
+/* Blue-light festival stall demo: intentionally separate from the user-submitted shop list. */
+#blue-preview{color:#fff;background:radial-gradient(ellipse at 50% 18%,#275a9b 0%,#142a5b 43%,#0b1432 82%)}
+#blue-preview:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.6;background-image:
+ radial-gradient(circle,#fff7da 1px,transparent 2px),radial-gradient(circle,#bfe2ff 1px,transparent 2px);
+ background-size:67px 78px,87px 105px;background-position:12px 18px,46px 53px}
+.blue-stars{position:absolute;top:8%;left:0;width:100%;text-align:center;color:#fae8bc;text-shadow:0 0 17px #f7e3a9;letter-spacing:2em;opacity:.6;pointer-events:none}
+.blue-game-layout{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;height:100%;overflow-y:auto;scrollbar-width:none;padding:calc(env(safe-area-inset-top) + 12px) 5.5% calc(env(safe-area-inset-bottom) + 10px)}
+.blue-game-layout::-webkit-scrollbar{display:none}
+.blue-game-top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none}
+.blue-demo-badge{font-size:12px;font-weight:800;color:#ffe3ab;background:#12244aba;border:1px solid #fff1bf75;border-radius:100px;padding:8px 10px}
+.blue-game-title{font-size:clamp(19px,6cqw,27px);line-height:1.3;color:#fff8e0;font-weight:900;text-shadow:0 0 12px #7bccff,0 2px 5px #061a3e;margin:3px 0 0;text-align:center;flex:none}
+.blue-lanterns{display:flex;justify-content:space-around;align-items:center;width:93%;font-size:clamp(17px,5cqw,25px);line-height:1.2;filter:drop-shadow(0 0 9px #ffd9a488);flex:none}
+.blue-game-hud{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;flex:none}
+.blue-game-hud>div{border-radius:13px;background:#102753e8;border:1px solid #a9daffa2;box-shadow:0 0 11px #67bbff22;display:flex;align-items:center;justify-content:center;gap:3px;padding:10px 4px;min-width:0}
+.blue-game-hud small{font-weight:700;font-size:clamp(9px,2.5cqw,12px);white-space:nowrap;color:#d7eafa}
+.blue-game-hud strong{font-weight:900;color:#fff4c6;font-size:clamp(15px,4cqw,20px);white-space:nowrap;font-variant-numeric:tabular-nums}
+#blue-lives{color:#ffb5d8;font-size:clamp(12px,3.8cqw,19px)}
+.blue-customer{display:flex;align-items:center;gap:6px;min-height:137px;width:100%;flex:1 1 145px;max-height:190px;padding:12px 6px}
+.blue-customer-avatar{display:grid;place-items:center;flex:0 0 27%;font-size:clamp(48px,16cqw,76px);filter:drop-shadow(0 6px 10px #0004)}
+.blue-speech{min-width:0;flex:1;align-self:stretch;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;background:linear-gradient(170deg,#fffdf1,#eaf8ff);border:3px solid #aedcfa;border-radius:26px;box-shadow:0 6px 0 #4a8ac477,0 0 20px #bce4ff5c;color:#21446c;padding:11px 8px;position:relative}
+.blue-speech:before{content:"";position:absolute;left:-10px;top:42%;border-width:10px 10px 10px 0;border-color:transparent #eaf8ff transparent transparent;border-style:solid}
+.blue-customer-caption{font-size:clamp(10px,3cqw,14px);font-weight:900}
+.blue-order{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px}
+.blue-order-item{font-size:clamp(34px,11cqw,52px);line-height:1.15;position:relative;filter:drop-shadow(0 2px 2px #719ab755)}
+.blue-order-item.done:after{content:"✓";position:absolute;bottom:-4px;right:-6px;background:#3fba8c;color:white;font-size:16px;line-height:1;border-radius:50%;padding:4px;font-weight:bold}
+.blue-order-divider{font-size:16px;font-weight:900;color:#5472a1}
+.blue-order-hint{min-height:1.4em;font-size:clamp(10px,2.8cqw,13px);margin:0;text-align:center;color:#3e6a8d;font-weight:800}
+.blue-stall-sign{width:97%;text-align:center;border-radius:14px 14px 6px 6px;border:2px solid #ffe3a2;padding:7px 5px;background:repeating-linear-gradient(90deg,#d84c73 0,#d84c73 34px,#fff5e8 34px,#fff5e8 68px);box-shadow:0 4px 0 #583b62a1;color:#603853;text-shadow:0 1px #fffbeb;font-weight:900;font-size:clamp(13px,3.7cqw,18px);flex:none}
+.blue-stall-sign span{color:#e9bb67}
+.blue-menu{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:9px;min-height:185px;height:clamp(190px,28vh,272px);flex:0 0 auto}
+.blue-food-button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:2px solid #fdf2cf;border-radius:21px;background:linear-gradient(160deg,#e4f5ff,#bdddf5);box-shadow:0 4px 0 #3b82ab,0 0 11px #a5d9ff77;color:#234b73;font-weight:900;font-size:clamp(13px,3.7cqw,18px);cursor:pointer;min-width:0;transition:transform .12s,filter .12s}
+.blue-food-apple{background:linear-gradient(160deg,#fff2f2,#ffd0db);color:#903e60}
+.blue-food-banana{background:linear-gradient(160deg,#fff5d6,#ffe9a5);color:#72502d}
+.blue-food-candy{background:linear-gradient(160deg,#f9edff,#e2d5ff);color:#654979}
+.blue-food-button:active:not(:disabled){transform:translateY(3px) scale(.97);box-shadow:0 1px 0 #3b82ab}
+.blue-food-button:focus-visible{outline:4px solid #fff1b0;outline-offset:2px}
+.blue-food-button:disabled{opacity:.65;cursor:default}
+.blue-food-icon{display:block;font-size:clamp(44px,12cqw,62px);line-height:1.06;filter:drop-shadow(0 3px 4px #775c6360)}
+.blue-food-button.blue-selected{box-shadow:0 4px 0 #398982,0 0 17px #81ffdd;border-color:#a1ffe2;background:linear-gradient(160deg,#f1fff8,#b8f5df)}
+.blue-food-button.blue-selected:after{content:"✓";position:absolute;right:10px;top:7px;font-size:19px;color:#129e80}
+.blue-feedback{color:#fff2c9;text-shadow:0 1px 6px #03102f;text-align:center;font-weight:800;font-size:clamp(13px,3.4cqw,16px);margin:0;min-height:23px;flex:none}
+.blue-feedback[data-kind="wrong"]{color:#ffd2d2}
+.blue-feedback[data-kind="served"]{color:#ffed9d}
+.blue-game-footer{display:flex;align-items:center;gap:11px;width:100%;justify-content:center;flex:none}
+.blue-pause{min-width:100px;min-height:42px;border-radius:999px;background:#e7f7ff;color:#245c85;border:0;font-weight:800;cursor:pointer;padding:7px 9px}
+.blue-pause:disabled{opacity:.55}
+#blue-game-note{font-size:clamp(9px,2.5cqw,11px);color:#d4e8ff;line-height:1.4;margin:0;flex:1}
+.blue-overlay{position:absolute;inset:calc(env(safe-area-inset-top) + 65px) 0 0;z-index:3;background:#0a2347b8;backdrop-filter:blur(5px);display:grid;place-items:center;padding:20px}
+.blue-overlay[hidden],.blue-game-panel[hidden]{display:none}
+.blue-game-panel{text-align:center;width:min(100%,365px);padding:22px 18px;border:2px solid #e6debd;border-radius:26px;background:linear-gradient(158deg,#265c89,#192c5b);box-shadow:0 12px 30px #0007,0 0 30px #7acfff55;color:#fff}
+.blue-game-panel h2{font-size:clamp(20px,6cqw,29px);line-height:1.4;color:#ffedba;text-shadow:0 0 9px #ffe09f7c;margin:10px 0}
+.blue-game-panel p{font-size:clamp(13px,3.65cqw,17px);line-height:1.65;margin:10px 0 18px}
+.blue-game-panel p.blue-panel-small{font-size:12px;color:#d8e8f5;margin:10px 0 19px}
+.blue-panel-ornament{font-size:clamp(30px,10cqw,47px);filter:drop-shadow(0 0 9px #ffebbf)}
+.blue-game-primary{width:100%;min-height:52px;border-radius:999px;border:none;background:linear-gradient(#fff2c4,#ffcb8c);color:#693c4b;font-weight:900;font-size:clamp(15px,4.5cqw,20px);cursor:pointer;box-shadow:0 0 17px #fff0c56b}
+#blue-preview[data-game-state="won"] .blue-panel-ornament{animation:blue-celebrate .75s ease-in-out 2 alternate}
+@keyframes blue-celebrate{from{transform:scale(.86)}to{transform:scale(1.18);filter:drop-shadow(0 0 18px #fff6a6)}}
+@media(max-height:760px){
+  .blue-game-layout{gap:5px;padding-top:calc(env(safe-area-inset-top) + 6px);padding-bottom:calc(env(safe-area-inset-bottom) + 5px)}
+  .blue-game-title{font-size:21px}
+  .blue-lanterns{font-size:17px}
+  .blue-game-hud>div{padding:6px 2px}
+  .blue-customer{min-height:100px;padding:3px 5px}
+  .blue-food-icon{font-size:41px}
+  .blue-menu{height:185px;min-height:185px}
+  .blue-stall-sign{padding:5px}
+  .blue-food-button{border-radius:15px}
+  .blue-game-footer{gap:6px}
+  .blue-pause{min-height:38px}
+}
+@media(prefers-reduced-motion:reduce){#blue-preview[data-game-state="won"] .blue-panel-ornament{animation:none}}

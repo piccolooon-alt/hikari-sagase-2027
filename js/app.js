@@ -7,8 +7,8 @@
   const paint = ['#ff697d', '#5cb8ff', '#ffd35e', '#f3f2ff'];
   const stamps = ['✨', '💕', '🎉', '🌟'];
   const screens = [...document.querySelectorAll('.screen')];
-  const routes = { howto: 'howtopage', red: 'red-preview' };
-  const routeFor = id => id === 'howtopage' ? 'howto' : id === 'red-preview' ? 'red' : id;
+  const routes = { howto: 'howtopage', red: 'red-preview', blue: 'blue-preview' };
+  const routeFor = id => id === 'howtopage' ? 'howto' : id === 'red-preview' ? 'red' : id === 'blue-preview' ? 'blue' : id;
   let day = new URLSearchParams(location.search).get('day') === '2' ? 2 : 1;
   let activeLightColor = 'red';
   let hintTabColor = 'red';
@@ -42,6 +42,7 @@
     if (!screens.some(el => el.id === id)) id = 'home';
     const previous = document.querySelector('.screen.active')?.id;
     if (previous === 'red-preview' && id !== previous) window.HikariRedGame.leave();
+    if (previous === 'blue-preview' && id !== previous) window.HikariBlueGame.leave();
     closeModal(false);
     screens.forEach(el => {
       const active = el.id === id;
@@ -50,8 +51,9 @@
       el.inert = !active;
     });
     document.querySelector('.app').dataset.screen = id;
-    window.HikariAudio.selectScene(id === 'red-preview' ? 'red' : 'common');
+    window.HikariAudio.selectScene(id === 'red-preview' ? 'red' : id === 'blue-preview' ? 'blue' : 'common');
     if (id === 'red-preview' && previous !== id) window.HikariRedGame.enter(day);
+    if (id === 'blue-preview' && previous !== id) window.HikariBlueGame.enter(day);
     $('bgm-toggle').hidden = id === 'loading';
     if (historyMode !== 'none' && id !== 'loading') {
       const url = new URL(location.href);
@@ -101,7 +103,7 @@
     $('found-orb').style.background = `radial-gradient(circle at 33% 27%,#fff 0%,color-mix(in srgb,${paint[i]} 45%,white 55%) 28%,${paint[i]} 67%,color-mix(in srgb,${paint[i]} 65%,black 35%))`;
     $('found-orb').style.boxShadow = `0 0 22px ${paint[i]},0 0 65px ${paint[i]}9a`;
     $('found-name').textContent = `${names[i]}の光`;
-    $('found-play').textContent = color === 'red' ? 'ヨーヨーよけであそぶ ›' : 'ミニゲームについて ›';
+    $('found-play').textContent = color === 'red' ? 'ヨーヨーよけであそぶ ›' : color === 'blue' ? 'おみせやさんであそぶ ›' : 'ミニゲームについて ›';
   }
   function discover(color) {
     const i = colors.indexOf(color);
@@ -126,7 +128,8 @@
   $('found-home').addEventListener('click', () => show('home'));
   $('found-play').addEventListener('click', () => {
     if (activeLightColor === 'red') show('red-preview');
-    else openModal('ミニゲームはこれから', ['青・黄・白のゲーム内容は、これから相談して決めます。', '今はクリアや提灯の点灯はありません。']);
+    else if (activeLightColor === 'blue') show('blue-preview');
+    else openModal('ミニゲームはこれから', ['黄・白のゲーム内容は、これから相談して決めます。', '今はクリアや提灯の点灯はありません。']);
   });
 
   function openPostHint() {
@@ -248,9 +251,12 @@
     openShops(true);
   });
 
-  // Game controls live in red-game.js; the app keeps its existing routes and shared BGM.
+  // Game controls live in red-game.js and blue-game.js; the app handles routes and shared BGM.
   $('red-preview-back').addEventListener('click', () => {
     if (found.includes('red')) discover('red'); else show('home');
+  });
+  $('blue-preview-back').addEventListener('click', () => {
+    if (found.includes('blue')) discover('blue'); else show('home');
   });
 
   function restoreRoute(historyMode = 'none') {
