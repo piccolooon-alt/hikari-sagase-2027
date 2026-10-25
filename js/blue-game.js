@@ -1,98 +1,116 @@
-/* Blue-light mini-game: lightweight DOM presentation and phone-friendly controls. */
+/* Blue light: a hands-on shop. Follow a recipe, then hand it to a random customer. */
 (() => {
   'use strict';
   const root = document.getElementById('blue-preview');
   if (!root || !window.HikariBlueModel) return;
-  const model = window.HikariBlueModel;
-  const game = model.createGame();
+  const model = window.HikariBlueModel, game = model.createGame();
   const $ = id => root.querySelector('#' + id);
   const buttons = [...root.querySelectorAll('[data-blue-item]')];
-  const itemById = new Map(model.ITEMS.map(item => [item.id, item]));
-  const orderBox = $('blue-order');
-  const overlay = $('blue-overlay');
-  const startPanel = $('blue-start-panel'), pausePanel = $('blue-pause-panel'), resultPanel = $('blue-result-panel');
-  let entered = false, frameId = 0, lastFrame = 0, renderOrderKey = '';
+  const byItem = new Map(model.ITEMS.map(item => [item.id, item]));
+  const byAction = new Map(model.ACTIONS.map(action => [action.id, action]));
+  const overlay = $('blue-overlay'), startPanel = $('blue-start-panel');
+  const pausePanel = $('blue-pause-panel'), resultPanel = $('blue-result-panel');
+  let entered = false, frameId = 0, lastFrame = 0, visualKey = '';
   function stopFrame() {
     if (frameId) cancelAnimationFrame(frameId);
     frameId = 0; lastFrame = 0;
   }
-  function showPanel(element, show) { element.hidden = !show; }
-  function refreshOrder() {
-    const state = game.state, key = state.order.join(':') + '|' + state.selected.join(':');
-    if (key === renderOrderKey) return;
-    renderOrderKey = key;
+  function renderRecipe() {
+    const s = game.state;
+    const key = [s.day, s.customer?.id, s.order.join(), s.selected.join(), s.stage, s.choices.join()].join('|');
+    if (key === visualKey) return;
+    visualKey = key;
+    $('blue-customer-avatar').textContent = s.customer?.emoji || '🧒';
+    $('blue-customer-avatar').setAttribute('aria-label', s.customer?.label || 'おきゃくさん');
     const nodes = [];
-    state.order.forEach((id, index) => {
-      if (index && state.day === 2) {
-        const arrow = document.createElement('span');
-        arrow.textContent = '→'; arrow.className = 'blue-order-divider'; arrow.setAttribute('aria-hidden', 'true');
-        nodes.push(arrow);
+    s.order.forEach((id, index) => {
+      const item = byItem.get(id);
+      if (index) {
+        const plus = document.createElement('span'); plus.className = 'blue-order-divider';
+        plus.textContent = '＋'; plus.setAttribute('aria-hidden', 'true'); nodes.push(plus);
       }
-      const span = document.createElement('span');
-      span.className = 'blue-order-item' + (index < state.selected.length ? ' done' : '');
-      span.textContent = itemById.get(id).emoji;
-      span.setAttribute('aria-label', itemById.get(id).label + (index < state.selected.length ? ' 完了' : ''));
-      nodes.push(span);
+      const node = document.createElement('span');
+      node.className = 'blue-order-item' + (index < s.selected.length ? ' done' : '');
+      node.textContent = item.emoji;
+      node.setAttribute('aria-label', item.label + (index < s.selected.length ? ' 完了' : ''));
+      nodes.push(node);
     });
-    orderBox.replaceChildren(...nodes);
-    const items = state.order.map(id => itemById.get(id).label);
-    $('blue-order-hint').textContent = state.order.length ?
-      (state.day === 2 ? items.join(' → ') + ' のじゅんばんで！' : items[0] + ' をタップ！') :
-      'ちゅうもんを よく見てね！';
+    $('blue-order').replaceChildren(...nodes);
+    const names = s.order.map(id => byItem.get(id).label);
+    $('blue-order-hint').textContent = names.length ?
+      s.customer.label + '「' + names.join('と') + 'ください！」' : 'おきゃくさんをまっているよ';
+    const itemId = game.currentItem();
+    const current = itemId && byItem.get(itemId);
+    const recipe = itemId && model.RECIPES[itemId];
+    const finished = recipe ? recipe.slice(0, s.stage).map(id => byAction.get(id).emoji).join(' ') : '';
+    $('blue-prep-status').textContent = current ?
+      current.emoji + '  ' + (finished || 'これからつくるよ') : 'できあがり！ ✨';
+    $('blue-prep-instruction').textContent = current ?
+      'つぎの どうぐや ざいりょうをえらぼう（' + (s.stage + 1) + ' / ' + recipe.length + '）' :
+      'おきゃくさんに わたせたよ！';
+    buttons.forEach((button, index) => {
+      const id = s.choices[index], a = byAction.get(id);
+      button.dataset.blueItem = id || '';
+      button.querySelector('.blue-food-icon').textContent = a?.emoji || '✨';
+      button.querySelector('.blue-action-label').textContent = a?.label || 'じゅんびちゅう';
+      button.setAttribute('aria-label', a?.label || 'じゅんびちゅう');
+    });
   }
   function configureDay() {
-    const day = game.state.day;
+    const day = game.state.day, rule = model.RULES[day];
     root.dataset.gameDay = String(day);
     root.querySelector('.blue-demo-badge').textContent = '🔵 ' + day + '日目のおためし';
-    $('blue-start-heading').textContent = day === 2 ? 'おみせやさんは大いそがし！' : 'ちゅうもんをそろえよう！';
+    $('blue-start-heading').textContent = day === 2 ? 'おみせやさんは大いそがし！' : 'ちゅうもんをつくろう！';
     $('blue-start-description').textContent = day === 2 ?
-      '2つの品物を、注文された順番でタップしよう！' :
-      'おきゃくさんの注文を見て、ぴったりの商品をタップしよう！';
-    $('blue-game-note').textContent = '青の光・' + day + '日目のおためし。おすすめのお店や受付との連動はまだありません。';
+      'おきゃくさんの2つの品物を、材料から順番につくって渡そう！' :
+      '注文された品物を、材料からつくって、おきゃくさんに渡そう！';
+    $('blue-start-rules').textContent = rule.duration + 'びょう・ライフ3つ・' + rule.goal + 'くみのおきゃくさん';
+    $('blue-game-note').textContent = day + '日目のおためし。デザインとイラストはあとで決めるよ。';
   }
   function sync({ focus = false } = {}) {
-    const state = game.state, rules = model.RULES[state.day];
-    root.dataset.gameState = state.status;
-    const playing = state.status === 'playing';
-    showPanel(startPanel, state.status === 'ready');
-    showPanel(pausePanel, state.status === 'paused');
-    showPanel(resultPanel, state.status === 'won' || state.status === 'lost');
+    const s = game.state, rule = model.RULES[s.day], playing = s.status === 'playing';
+    root.dataset.gameState = s.status;
+    startPanel.hidden = s.status !== 'ready';
+    pausePanel.hidden = s.status !== 'paused';
+    resultPanel.hidden = s.status !== 'won' && s.status !== 'lost';
     overlay.hidden = playing;
     overlay.setAttribute('aria-hidden', String(playing));
-    $('blue-time').textContent = state.remaining.toFixed(1);
-    $('blue-score').textContent = state.completed + ' / ' + rules.goal;
-    $('blue-lives').textContent = '♥ '.repeat(state.lives).trim() + ' ♡'.repeat(rules.lives - state.lives);
-    $('blue-lives').setAttribute('aria-label', 'ライフ' + state.lives + 'つ');
+    $('blue-time').textContent = s.remaining.toFixed(1);
+    $('blue-score').textContent = s.completed + ' / ' + rule.goal;
+    $('blue-lives').textContent = '♥ '.repeat(s.lives).trim() + ' ♡'.repeat(rule.lives - s.lives);
+    $('blue-lives').setAttribute('aria-label', 'ライフ' + s.lives + 'つ');
     $('blue-pause').disabled = !playing;
+    renderRecipe();
     buttons.forEach(button => {
-      button.disabled = !playing || state.interlude > 0;
-      button.classList.toggle('blue-selected', state.selected.includes(button.dataset.blueItem));
-      button.setAttribute('aria-pressed', String(state.selected.includes(button.dataset.blueItem)));
+      button.disabled = !playing || s.interlude > 0 || !button.dataset.blueItem;
+      button.classList.remove('blue-selected');
+      button.setAttribute('aria-pressed', 'false');
     });
-    $('blue-feedback').textContent = state.feedbackTime > 0 && playing ? state.feedback : '';
-    $('blue-feedback').dataset.kind = state.feedbackKind;
-    refreshOrder();
-    if (state.status === 'won') {
+    $('blue-feedback').textContent = s.feedbackTime > 0 && playing ? s.feedback : '';
+    $('blue-feedback').dataset.kind = s.feedbackKind;
+    if (s.status === 'won') {
       $('blue-result-title').textContent = 'やったー！ おみせやさん名人！ ✨';
-      $('blue-result-text').textContent = rules.goal + 'くみの注文がそろったよ！ 青い光、みつけた！';
+      $('blue-result-text').textContent = rule.goal + 'くみのおきゃくさんに、できたてを渡せたよ！';
       $('blue-result-ornament').textContent = '💙 ✨ 🎉 ✨ 💙';
-    } else if (state.status === 'lost') {
+    } else if (s.status === 'lost') {
       $('blue-result-title').textContent = 'もういっかい！ 🍧';
-      $('blue-result-text').textContent = state.lives <= 0 ?
-        'おしい！ ライフがなくなっちゃった。もういちど挑戦しよう！' :
-        'じかんぎれ！ ' + state.completed + 'くみの注文ができたよ。もういっかい！';
+      $('blue-result-text').textContent = s.lives <= 0 ?
+        'おしい！ つぎは じゅんばんをよく見てね！' :
+        'じかんぎれ！ ' + s.completed + 'くみできたよ。またあそぼう！';
       $('blue-result-ornament').textContent = '🍧 🍎 🍌';
     }
-    if (focus && state.status === 'paused') $('blue-resume').focus({ preventScroll: true });
-    if (focus && (state.status === 'won' || state.status === 'lost')) { $('blue-result-title').tabIndex = -1; $('blue-result-title').focus({ preventScroll: true }); }
+    if (focus && s.status === 'paused') $('blue-resume').focus({ preventScroll: true });
+    if (focus && ['won', 'lost'].includes(s.status)) {
+      $('blue-result-title').tabIndex = -1;
+      $('blue-result-title').focus({ preventScroll: true });
+    }
   }
   function loop(now) {
     frameId = 0;
     if (!entered || document.hidden || game.state.status !== 'playing') return;
     const elapsed = lastFrame ? Math.max(0, Math.min(.1, (now - lastFrame) / 1000)) : 0;
     lastFrame = now;
-    game.step(elapsed);
-    sync();
+    game.step(elapsed); sync();
     if (game.state.status === 'playing') frameId = requestAnimationFrame(loop);
     else sync({ focus: true });
   }
@@ -102,17 +120,18 @@
   }
   function start() {
     if (!entered || document.hidden) return;
-    stopFrame(); game.start(); renderOrderKey = ''; sync(); schedule();
+    stopFrame(); game.start(); visualKey = ''; sync(); schedule();
   }
   function pause() {
     if (game.state.status !== 'playing') return;
     game.pause(); stopFrame(); sync({ focus: entered && !document.hidden });
   }
-  buttons.forEach(button => button.addEventListener('click', () => {
-    if (!entered || document.hidden) return;
+  function choose(button) {
+    if (!entered || document.hidden || button.disabled) return;
     game.chooseItem(button.dataset.blueItem);
     sync({ focus: true });
-  }));
+  }
+  buttons.forEach(button => button.addEventListener('click', () => choose(button)));
   $('blue-start').addEventListener('click', start);
   $('blue-retry').addEventListener('click', start);
   $('blue-pause').addEventListener('click', pause);
@@ -122,22 +141,19 @@
   });
   window.addEventListener('keydown', event => {
     if (!entered || document.hidden || event.altKey || event.ctrlKey || event.metaKey) return;
-    if (event.key === 'Escape') { if (game.state.status === 'playing') { event.preventDefault(); pause(); } return; }
-    if (game.state.status !== 'playing' || !['1','2','3','4'].includes(event.key)) return;
+    if (event.key === 'Escape') {
+      if (game.state.status === 'playing') { event.preventDefault(); pause(); }
+      return;
+    }
+    if (game.state.status !== 'playing' || !['1', '2', '3', '4'].includes(event.key)) return;
     event.preventDefault();
-    game.chooseItem(buttons[Number(event.key)-1].dataset.blueItem);
-    sync({ focus: true });
+    choose(buttons[Number(event.key) - 1]);
   });
   window.addEventListener('blur', () => { if (entered) pause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && entered) pause(); });
   window.HikariBlueGame = Object.freeze({
-    enter(day) {
-      game.setDay(day);
-      configureDay(); entered = true; renderOrderKey = ''; sync();
-    },
-    leave() {
-      entered = false; pause(); stopFrame();
-    }
+    enter(day) { game.setDay(day); configureDay(); entered = true; visualKey = ''; sync(); },
+    leave() { entered = false; pause(); stopFrame(); }
   });
   configureDay(); sync();
 })();

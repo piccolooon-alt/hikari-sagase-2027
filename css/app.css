@@ -503,3 +503,17 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   .blue-pause{min-height:38px}
 }
 @media(prefers-reduced-motion:reduce){#blue-preview[data-game-state="won"] .blue-panel-ornament{animation:none}}
+
+/* 2027 blue mini-game: recipe progress only. Final visual design is intentionally undecided. */
+.blue-prep{width:100%;border:1px solid #c2e2fb99;border-radius:14px;background:#103358db;color:#fff5d8;text-align:center;padding:5px 10px;flex:none}
+.blue-prep-status{font-size:clamp(15px,4.2cqw,20px);font-weight:900;min-height:24px}
+.blue-prep-instruction{font-size:clamp(10px,2.9cqw,13px);font-weight:800;color:#ddf1ff}
+.blue-menu{height:clamp(168px,24vh,230px);min-height:168px;gap:7px}
+.blue-food-icon{font-size:clamp(34px,9cqw,50px)}
+.blue-food-button{font-size:clamp(11px,3.35cqw,16px);min-height:70px}
+@media(max-height:700px){
+  .blue-prep{padding:3px 6px}
+  .blue-menu{height:168px;min-height:168px}
+  .blue-food-icon{font-size:34px}
+  .blue-customer{min-height:92px;flex-basis:100px}
+}
