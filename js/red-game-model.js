@@ -46,7 +46,11 @@
   const WIDTH = 360;
   const LIGHT_GOAL = 3;
   // Day 2: replace some regular hazards with glowing catchable balloons; never add extra hazards.
-  const GLOW_SPAWNS = new Set([1, 4, 7, 10, 13, 16]);
+  // Six chances over 30 seconds. The third glowing balloon (spawn #9, index 8)
+  // cannot appear until about 15.3 seconds with the approved gentle pacing.
+  // Thus normal play cannot finish before 15 seconds, while the third catch
+  // still wins immediately without an artificial waiting screen.
+  const GLOW_SPAWNS = new Set([1, 4, 8, 10, 13, 16]);
   const DIRECTIONS = ['top', 'diagonal-left', 'left', 'right', 'diagonal-right'];
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
