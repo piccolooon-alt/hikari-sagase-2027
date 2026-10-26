@@ -8,12 +8,11 @@
 - ルール・調理・画像・画面レイアウトは変更しない。
 
 ## 音声ファイル
-- 添付された `tokyo_summer_loop.mp3` を**同じファイル名で** `assets/audio/tokyo_summer_loop.mp3` に追加する必要があります。
+- 添付された `tokyo_summer_loop.mp3` を `assets/audio/tokyo_summer_loop.mp3` に追加済みです。
 - 元の音声は約120.84秒・192kbps。ゲーム中は既存 `<audio loop>` で再生し、両日とも同じ曲を使用。
-- **重要: このPRのコードコミットにMP3本体は含まれていません。** GitHubコネクタがバイナリ添付を直接コミットできないため、音声ファイルを当該ブランチに追加してからマージしてください。PRはDraftで作成します。
+- **MP3本体をこのブランチに追加済み。** 添付ファイルとGit Blob SHA（`7e5672f79eb4cb13ee8b8ac454890baa37c5aef9`）が一致することを確認しました。
 
 ## 最終確認
-1. 音声ファイルをブランチへ追加。
-2. `node tests/blue-game.cjs`、`node tests/red-game.cjs`、`node tests/smoke.cjs` を実行。
-3. `?day=1#blue` と `?day=2#blue` で同じ曲を再生し、音楽ON/OFF、赤への遷移、戻る操作を確認。
-4. 青ゲームに人物説明が表示されないこと、お客さんが4人ランダムに現れることを確認。
+1. `node tests/blue-game.cjs`、`node tests/red-game.cjs`、`node tests/smoke.cjs` を実行。
+2. `?day=1#blue` と `?day=2#blue` で同じ曲を再生し、音楽ON/OFF、赤への遷移、戻る操作を確認。
+3. 青ゲームに人物説明が表示されないこと、お客さんが4人ランダムに現れることを確認。
