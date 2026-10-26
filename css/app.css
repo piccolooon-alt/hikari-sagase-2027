@@ -517,3 +517,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
   .blue-food-icon{font-size:34px}
   .blue-customer{min-height:92px;flex-basis:100px}
 }
+
+/* Full-height blue game: the approved stall, customer and cooking art are inside the same-origin iframe. */
+#blue-preview{background:#0b1f46;overflow:hidden}
+#blue-live-frame{display:block;position:absolute;inset:0;width:100%;height:100%;border:0;background:#102a55}
+#blue-preview-back[hidden]{display:none!important}
