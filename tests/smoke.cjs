@@ -264,62 +264,75 @@ async function mobileFlow(browser, base, viewport) {
   } finally { await context.close(); }
 }
 
+
 async function blueRoundFlow(browser, base) {
-  const foods = {'かき氷':'ice','りんご飴':'apple','チョコバナナ':'banana','わたあめ':'candy'};
   const recipes = {
-    ice: ['bowl','ice','syrup','spoon','serve'],
-    apple: ['apple','stick','coating','wrap','serve'],
-    banana: ['banana','stick','chocolate','sprinkles','serve'],
-    candy: ['stick','sugar','spin','wrap','serve']
+    'わたあめ': ['棒','ザラメ','くるくる回す','ふわふわ完成','🙌 おわたし'],
+    'いちごのかき氷': ['器','ふわふわの氷','いちごシロップ','スプーン','🙌 おわたし'],
+    'やきそば': ['めん','キャベツ','ソースで焼く','皿に盛り付け','トッピング','🙌 おわたし'],
+    'フランクフルト': ['棒','ウインナー','こんがり焼く','ケチャップ','🙌 おわたし'],
+    'トルネードポテト': ['棒','じゃがいも','カラッと揚げる','お塩をふる','🙌 おわたし']
   };
-  for (const day of [1,2]) {
-    await run('blue cooking day ' + day + ': five-step food making, customer orders and retry', async () => {
+  for (const day of [1, 2]) {
+    await run('blue illustrated shop day ' + day + ': cooking, mobile art and returning to home', async () => {
       const context = await browser.newContext({
-        viewport: {width:390,height:844},isMobile:true,hasTouch:true
+        viewport: {width:390,height:844}, isMobile:true, hasTouch:true
       });
-      const page = await context.newPage(), check = diagnostics(page,new URL(base).origin);
+      const page = await context.newPage();
+      const check = diagnostics(page, new URL(base).origin);
       try {
         await page.goto(`${base}index.html?day=${day}#blue`);
-        await active(page,'blue-preview');
+        await active(page, 'blue-preview');
         await resources(page);
-        assert.equal(await page.locator('[data-blue-item]').count(),4);
-        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-day'),String(day));
-        await snapshot(page,'390-blue-day'+day+'-ready');
+        const frame = page.frameLocator('#blue-live-frame');
+        await frame.locator('#primary').waitFor();
+        assert.equal(await frame.locator('#day-name').innerText(), '🔵 ' + day + '日目のぼうけん');
+        assert.equal(await frame.locator('.choice').count(), 4);
+        assert.equal(await frame.locator('.app').evaluate(el =>
+          getComputedStyle(el).backgroundImage.includes('data:image/webp;base64,')), true);
+        await snapshot(page, '390-blue-art-day' + day + '-ready');
         await page.clock.install();
-        await page.clock.pauseAt(new Date(Date.now()+1000));
-        await page.locator('#blue-start').tap();
-        await page.waitForFunction(()=>document.querySelector('#blue-preview').dataset.gameState==='playing');
-        let lastCustomer=null;
-        for (let round=0;round<(day===1?3:2);round++) {
-          const customer=await page.locator('#blue-customer-avatar').getAttribute('aria-label');
-          assert.ok(customer,'customer introduced');
-          if(lastCustomer!==null)assert.notEqual(customer,lastCustomer,'customers rotate');
-          lastCustomer=customer;
-          const labels=await page.locator('#blue-order .blue-order-item').evaluateAll(nodes=>
-            nodes.map(node=>node.getAttribute('aria-label').replace(' 完了','')));
-          assert.equal(labels.length,day);
-          for (const label of labels) {
-            const food=foods[label];assert.ok(food,'known festival food '+label);
+        await frame.locator('#primary').tap();
+        assert.equal(await frame.locator('#customer-img').evaluate(img => img.complete && img.naturalWidth > 0), true);
+        let lastCustomer = null;
+        for (let round = 0; round < (day === 1 ? 3 : 2); round++) {
+          const customer = await frame.locator('#customer-name').innerText();
+          assert.ok(customer, 'random customer has a name');
+          if (lastCustomer !== null) assert.notEqual(customer, lastCustomer, 'consecutive customers differ');
+          lastCustomer = customer;
+          const order = await frame.locator('#order').innerText();
+          const foods = Object.keys(recipes).filter(name => order.includes(name))
+            .sort((a,b) => order.indexOf(a) - order.indexOf(b));
+          assert.equal(foods.length, day, 'day order contains the right number of products');
+          for (const food of foods) {
             for (const step of recipes[food]) {
-              const ingredient=page.locator(`[data-blue-item="${step}"]`);
-              await ingredient.tap();
+              const candidates = frame.locator('.choice');
+              let matching = -1;
+              for (let i = 0; i < 4; i++) {
+                if ((await candidates.nth(i).locator('span').innerText()) === step) matching = i;
+              }
+              assert.notEqual(matching, -1, 'found ingredient for ' + food + ': ' + step);
+              await candidates.nth(matching).tap();
             }
           }
-          if(round===0)await snapshot(page,'390-blue-day'+day+'-playing');
-          if(round<(day===1?2:1))await page.clock.runFor(800);
+          if (round === 0) await snapshot(page,'390-blue-art-day' + day + '-cooking');
+          if (round < (day === 1 ? 2 : 1)) await page.clock.runFor(850);
         }
-        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'),'won');
-        assert.match(await page.locator('#blue-result-title').innerText(),/名人/);
-        assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'),'common');
-        await snapshot(page,'390-blue-day'+day+'-clear');
-        await page.locator('#blue-retry').tap();
-        assert.equal(await page.locator('#blue-score').innerText(),'0 / '+(day===1?3:2));
-        await page.locator('#blue-pause').tap();
-        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'),'paused');
-        await page.locator('#blue-resume').tap();
-        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'),'playing');
+        assert.match(await frame.locator('#panel-title').innerText(), /名人/);
+        assert.equal(await frame.locator('#score').innerText(), (day === 1 ? '3 / 3' : '2 / 2'));
+        assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'), 'common');
+        await snapshot(page, '390-blue-art-day' + day + '-clear');
+        await frame.locator('#primary').tap(); // Retry
+        await frame.locator('#pause').tap();
+        assert.equal(await frame.locator('#panel-title').innerText(), 'ひとやすみ');
+        await frame.locator('#primary').tap();
+        assert.equal(await frame.locator('#overlay').isHidden(), true);
+        await frame.locator('#home').tap();
+        await active(page,'home');
         check();
-      } finally { await context.close(); }
+      } finally {
+        await context.close();
+      }
     });
   }
 }
