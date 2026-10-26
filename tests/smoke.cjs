@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const artifacts = path.join(__dirname, 'artifacts');
 const prefix = '/hikari-sagase-2027/';
 const engine = process.env.BROWSER || 'chromium';
-const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.mp3': 'audio/mpeg', '.woff2': 'font/woff2' };
+const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.webp': 'image/webp', '.mp3': 'audio/mpeg', '.woff2': 'font/woff2' };
 let passed = 0;
 
 function serverForProject() {
@@ -265,63 +265,161 @@ async function mobileFlow(browser, base, viewport) {
 }
 
 async function blueRoundFlow(browser, base) {
-  const foods = {'かき氷':'ice','りんご飴':'apple','チョコバナナ':'banana','わたあめ':'candy'};
-  const recipes = {
-    ice: ['bowl','ice','syrup','spoon','serve'],
-    apple: ['apple','stick','coating','wrap','serve'],
-    banana: ['banana','stick','chocolate','sprinkles','serve'],
-    candy: ['stick','sugar','spin','wrap','serve']
-  };
-  for (const day of [1,2]) {
-    await run('blue cooking day ' + day + ': five-step food making, customer orders and retry', async () => {
-      const context = await browser.newContext({
-        viewport: {width:390,height:844},isMobile:true,hasTouch:true
-      });
+  const { ITEMS, CUSTOMERS, RECIPES: recipes, RULES, workImage } = require('../js/blue-game-model.js');
+  const foods = Object.fromEntries(ITEMS.map(item => [item.label, item.id]));
+  const seenFoods = new Set(), seenCustomers = new Set();
+  const viewports = [{width:320,height:568},{width:360,height:800},{width:390,height:844},{width:430,height:932}];
+  for (const viewport of viewports) for (const day of [1,2]) {
+    await run('blue day ' + day + ' at ' + viewport.width + 'px: images, all steps, touch targets and clear', async () => {
+      const context = await browser.newContext({viewport,isMobile:true,hasTouch:true,deviceScaleFactor:1});
+      // Deterministic sampling makes food/customer coverage reproducible; production uses Math.random.
+      await context.addInitScript(seed => {
+        let value = seed;
+        Math.random = () => { value = (Math.imul(value,1664525)+1013904223)>>>0;return value/4294967296; };
+      }, viewport.width + day);
       const page = await context.newPage(), check = diagnostics(page,new URL(base).origin);
       try {
-        await page.goto(`${base}index.html?day=${day}#blue`);
-        await active(page,'blue-preview');
-        await resources(page);
+        await page.goto(`${base}?day=${day}#blue`);
+        await active(page,'blue-preview');await resources(page);
         assert.equal(await page.locator('[data-blue-item]').count(),4);
         assert.equal(await page.locator('#blue-preview').getAttribute('data-game-day'),String(day));
-        await snapshot(page,'390-blue-day'+day+'-ready');
-        await page.clock.install();
-        await page.clock.pauseAt(new Date(Date.now()+1000));
+        assert.match(await page.locator('#blue-start-rules').innerText(),new RegExp(RULES[day].duration+'びょう'));
+        await snapshot(page,viewport.width+'-blue-day'+day+'-ready');
+        await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));
         await page.locator('#blue-start').tap();
-        await page.waitForFunction(()=>document.querySelector('#blue-preview').dataset.gameState==='playing');
         let lastCustomer=null;
-        for (let round=0;round<(day===1?3:2);round++) {
-          const customer=await page.locator('#blue-customer-avatar').getAttribute('aria-label');
-          assert.ok(customer,'customer introduced');
+        for(let round=0;round<RULES[day].goal;round++){
+          const customer=await page.locator('#blue-customer-avatar').getAttribute('alt');
+          assert.ok(CUSTOMERS.some(c=>c.label===customer));
+          seenCustomers.add(customer);
           if(lastCustomer!==null)assert.notEqual(customer,lastCustomer,'customers rotate');
           lastCustomer=customer;
-          const labels=await page.locator('#blue-order .blue-order-item').evaluateAll(nodes=>
-            nodes.map(node=>node.getAttribute('aria-label').replace(' 完了','')));
-          assert.equal(labels.length,day);
-          for (const label of labels) {
-            const food=foods[label];assert.ok(food,'known festival food '+label);
-            for (const step of recipes[food]) {
-              const ingredient=page.locator(`[data-blue-item="${step}"]`);
-              await ingredient.tap();
+          const labels=await page.locator('#blue-order .blue-order-item').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('aria-label').replace(' 完了','')));
+          assert.equal(labels.length,RULES[day].perOrder);
+          for(const label of labels){
+            const food=foods[label];assert.ok(food);seenFoods.add(food);
+            for(let stage=0;stage<recipes[food].length;stage++){
+              const step=recipes[food][stage];
+              const layout=await page.evaluate(()=>{
+                const controls=[...document.querySelectorAll('#blue-preview-back,#blue-pause,#bgm-toggle,[data-blue-item]')];
+                const bounds=controls.map(el=>{
+                  const r=el.getBoundingClientRect();
+                  return {id:el.id||el.dataset.blueItem,x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height,
+                    hit:el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))};
+                });
+                const textFits=[...document.querySelectorAll('.blue-action-label,.blue-demo-badge')].every(el=>el.scrollWidth<=el.clientWidth+1&&el.scrollHeight<=el.clientHeight+1);
+                return {bounds,textFits,scroll:document.documentElement.scrollWidth,inner:innerWidth,
+                  prepBackground:getComputedStyle(document.querySelector('.blue-prep')).backgroundColor};
+              });
+              assert.ok(layout.scroll<=layout.inner+1);
+              assert.ok(layout.textFits,'control text must fit');
+              for(const b of layout.bounds){
+                assert.ok(b.width>=44&&b.height>=44,b.id+' must have a 44px touch target');
+                assert.ok(b.x>=0&&b.y>=0&&b.right<=viewport.width+1&&b.bottom<=viewport.height+1,b.id+' must fit on screen');
+                assert.ok(b.hit,b.id+' must be tappable without overlapping controls');
+              }
+              assert.equal(layout.prepBackground,'rgba(0, 0, 0, 0)');
+              await resources(page);
+              assert.equal(new Set(await page.locator('.blue-action-label').allTextContents()).size,4);
+              if(stage>0){
+                assert.equal(await page.locator('#blue-work-image').getAttribute('src'),workImage(food,stage));
+                assert.equal(await page.locator('#blue-work-image').isVisible(),true);
+              }
+              if(stage===recipes[food].length-1){
+                await page.screenshot({path:path.join(artifacts,`${engine}-${viewport.width}-blue-day${day}-${food}.png`)});
+              }
+              await page.locator(`[data-blue-item="${step}"]`).tap();
+              assert.equal(await page.locator('#blue-lives').getAttribute('aria-label'),'ライフ3つ');
             }
           }
-          if(round===0)await snapshot(page,'390-blue-day'+day+'-playing');
-          if(round<(day===1?2:1))await page.clock.runFor(800);
+          if(round<RULES[day].goal-1)await page.clock.runFor(800);
         }
         assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'),'won');
         assert.match(await page.locator('#blue-result-title').innerText(),/名人/);
         assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'),'common');
-        await snapshot(page,'390-blue-day'+day+'-clear');
-        await page.locator('#blue-retry').tap();
-        assert.equal(await page.locator('#blue-score').innerText(),'0 / '+(day===1?3:2));
-        await page.locator('#blue-pause').tap();
-        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'),'paused');
-        await page.locator('#blue-resume').tap();
-        assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'),'playing');
+        await snapshot(page,viewport.width+'-blue-day'+day+'-clear');
         check();
-      } finally { await context.close(); }
+      }finally{await context.close();}
     });
   }
+  assert.equal(seenFoods.size,5,'browser play must cover all five foods');
+  assert.equal(seenCustomers.size,4,'browser play must cover all four customer images');
+  for(const day of [1,2])await run('blue day '+day+': mistakes, pause during change, hidden tab, retry, timeout and BGM',async()=>{
+    const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+    const page=await context.newPage(),check=diagnostics(page,new URL(base).origin);
+    const status=()=>page.locator('#blue-preview').getAttribute('data-game-state');
+    const clickCorrect=async()=>{
+      const next=await page.evaluate(()=>{
+        const label=document.querySelector('#blue-order .current').getAttribute('aria-label');
+        const model=window.HikariBlueModel,food=model.ITEMS.find(x=>x.label===label).id;
+        const stage=document.querySelectorAll('#blue-progress .done').length;
+        return model.RECIPES[food][stage];
+      });
+      await page.locator(`[data-blue-item="${next}"]`).tap();
+      return next;
+    };
+    try{
+      await page.goto(`${base}?day=${day}#blue`);await active(page,'blue-preview');await resources(page);
+      await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));
+      await page.locator('#blue-start').tap();await clickCorrect();
+      const image=await page.locator('#blue-work-image').getAttribute('src');
+      const wrong=await page.evaluate(()=>{
+        const current=document.querySelector('#blue-order .current').getAttribute('aria-label');
+        const model=window.HikariBlueModel,id=model.ITEMS.find(x=>x.label===current).id;
+        const expected=model.RECIPES[id][document.querySelectorAll('#blue-progress .done').length];
+        return [...document.querySelectorAll('[data-blue-item]')].find(b=>b.dataset.blueItem!==expected).dataset.blueItem;
+      });
+      await page.locator(`[data-blue-item="${wrong}"]`).tap();
+      assert.equal(await page.locator('#blue-lives').getAttribute('aria-label'),'ライフ2つ');
+      assert.equal(await page.locator('#blue-work-image').getAttribute('src'),image);
+      await page.locator('#blue-pause').tap();assert.equal(await status(),'paused');
+      const time=await page.locator('#blue-time').innerText();await page.clock.runFor(4000);
+      assert.equal(await page.locator('#blue-time').innerText(),time);
+      await page.locator('#blue-resume').tap();assert.equal(await status(),'playing');
+      assert.equal(await page.locator('#blue-work-image').getAttribute('src'),image);
+      await page.evaluate(()=>{
+        Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      assert.equal(await status(),'paused');await page.clock.runFor(4000);
+      assert.equal(await page.locator('#blue-time').innerText(),time);
+      await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});
+      assert.equal(await status(),'paused','restoring visibility requires explicit resume');
+      await page.locator('#blue-resume').tap();
+      while((await page.locator('#blue-score').innerText()).startsWith('0 /'))await clickCorrect();
+      await page.locator('#blue-pause').tap();
+      const customer=await page.locator('#blue-customer-avatar').getAttribute('alt');
+      await page.clock.runFor(3000);
+      assert.equal(await page.locator('#blue-customer-avatar').getAttribute('alt'),customer);
+      await page.locator('#blue-resume').tap();await page.clock.runFor(800);
+      assert.notEqual(await page.locator('#blue-customer-avatar').getAttribute('alt'),customer);
+      await page.locator('#blue-pause').tap();await page.locator('#blue-restart').tap();
+      assert.equal(await page.locator('#blue-lives').getAttribute('aria-label'),'ライフ3つ');
+      assert.equal(await page.locator('#blue-score').innerText(),'0 / '+RULES[day].goal);
+      // Losing all lives uses actual wrong buttons, without changing game state.
+      for(let i=0;i<3;i++){
+        const next=await page.evaluate(()=>{
+          const m=window.HikariBlueModel,label=document.querySelector('#blue-order .current').getAttribute('aria-label');
+          const id=m.ITEMS.find(x=>x.label===label).id,correct=m.RECIPES[id][0];
+          return [...document.querySelectorAll('[data-blue-item]')].find(b=>b.dataset.blueItem!==correct).dataset.blueItem;
+        });
+        await page.locator(`[data-blue-item="${next}"]`).tap();
+      }
+      assert.equal(await status(),'lost');await page.locator('#blue-retry').tap();
+      await page.clock.runFor((RULES[day].duration+1)*1000);
+      assert.equal(await status(),'lost');assert.match(await page.locator('#blue-result-text').innerText(),/じかんぎれ/);
+      await page.locator('#blue-retry').tap();assert.equal(await status(),'playing');
+      await page.clock.resume();
+      assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'),'common');
+      await page.locator('#bgm-toggle').tap();
+      assert.equal(await page.locator('#suzuran-bgm').evaluate(el=>el.paused),true);
+      await page.locator('#bgm-toggle').tap();
+      await page.waitForFunction(()=>!document.querySelector('#suzuran-bgm').paused);
+      await page.locator('#blue-preview-back').tap();await active(page,'home');
+      await page.goBack();await active(page,'blue-preview');assert.equal(await status(),'paused');
+      check();
+    }finally{await context.close();}
+  });
 }
 
 async function dayTwoLightFlow(browser, base) {
@@ -607,7 +705,7 @@ async function storageUnavailable(browser, base) {
     await dayTwoLightFlow(browser, base);
     await projectorFlow(browser, base);
     await storageUnavailable(browser, base);
-    fs.writeFileSync(resultPath, JSON.stringify({ engine, browserVersion: browser.version(), passed, failed: 0, mobileWidths: [360, 390, 430], mobileProfiles: ['Android-like UA + touch', 'iPhone-like UA + touch'], note: 'Mobile profiles use the selected engine; they are not physical iOS/Android devices.' }, null, 2) + '\n');
+    fs.writeFileSync(resultPath, JSON.stringify({ engine, browserVersion: browser.version(), passed, failed: 0, mobileWidths: [360, 390, 430], blueMobileWidths: [320, 360, 390, 430], mobileProfiles: ['Android-like UA + touch', 'iPhone-like UA + touch'], note: 'Mobile profiles use the selected engine; they are not physical iOS/Android devices.' }, null, 2) + '\n');
     console.log(`${passed} scenarios passed (${engine}). Screenshots: tests/artifacts/`);
   } catch (error) {
     console.error(error);
