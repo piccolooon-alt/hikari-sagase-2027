@@ -534,9 +534,10 @@ async function routeRegression(browser, base) {
       assert.equal(await page.locator('#found-name').innerText(), 'あおの光', 'reload preserves the displayed color');
       assert.deepEqual(await savedFound(1), ['blue'], 'rendering a route must not discover red');
       await page.locator('#found-play').click(); await active(page, 'blue-preview');
-      assert.equal(await page.locator('#blue-preview').getAttribute('data-game-day'), '1',
-        'the found-blue button opens the actual first-day shop game');
-      await page.locator('#blue-preview-back').click(); await active(page, 'discovered');
+      assert.equal(await page.frameLocator('#blue-live-frame').locator('#day-name').innerText(),
+        '🔵 1日目のぼうけん', 'the found-blue button opens the actual first-day shop game');
+      await page.frameLocator('#blue-live-frame').locator('#home').click();
+      await active(page, 'discovered');
       await page.locator('#found-home').click(); await active(page, 'home');
       await page.locator('#home-hintbook').click(); await active(page, 'hintbook');
       await page.locator('#hint-day').selectOption('2');
