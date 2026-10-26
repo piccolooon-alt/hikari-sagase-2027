@@ -6,7 +6,7 @@
     red: Object.freeze({ src: 'assets/audio/summer_yoyo_matsuri.mp3', label: '水風船ヨーヨーよけのBGM' }),
     white: null,
     yellow: null,
-    blue: null
+    blue: Object.freeze({ src: 'assets/audio/tokyo_summer_loop.mp3', label: 'おまつりのおみせやさんBGM' })
   });
   const player = document.getElementById('suzuran-bgm');
   const button = document.getElementById('bgm-toggle');

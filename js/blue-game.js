@@ -33,9 +33,8 @@
     const avatar = $('blue-customer-avatar');
     avatar.hidden = !s.customer;
     if (s.customer) avatar.src = s.customer.image;
-    avatar.alt = s.customer?.label || 'おきゃくさん';
-    avatar.setAttribute('aria-label', avatar.alt);
-    $('blue-customer-name').textContent = avatar.alt;
+    // The customer's appearance is conveyed by the artwork; do not show internal character descriptions.
+    avatar.alt = 'おきゃくさん';
     const nodes = [];
     s.order.forEach((id, index) => {
       const item = byItem.get(id);
