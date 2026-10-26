@@ -11,6 +11,16 @@
   const overlay = $('blue-overlay'), startPanel = $('blue-start-panel');
   const pausePanel = $('blue-pause-panel'), resultPanel = $('blue-result-panel');
   let entered = false, frameId = 0, lastFrame = 0, visualKey = '';
+  const preloaded = [];
+  function preloadAssets() {
+    if (preloaded.length) return;
+    const sources = new Set([
+      ...model.CUSTOMERS.map(person => person.image),
+      ...model.ACTIONS.map(action => action.image).filter(Boolean),
+      ...model.ITEMS.map(item => model.imageFor(item.id, 'finish'))
+    ]);
+    sources.forEach(src => { const image = new Image(); image.src = src; preloaded.push(image); });
+  }
   function stopFrame() {
     if (frameId) cancelAnimationFrame(frameId);
     frameId = 0; lastFrame = 0;
@@ -20,8 +30,12 @@
     const key = [s.day, s.customer?.id, s.order.join(), s.selected.join(), s.stage, s.choices.join()].join('|');
     if (key === visualKey) return;
     visualKey = key;
-    $('blue-customer-avatar').textContent = s.customer?.emoji || '🧒';
-    $('blue-customer-avatar').setAttribute('aria-label', s.customer?.label || 'おきゃくさん');
+    const avatar = $('blue-customer-avatar');
+    avatar.hidden = !s.customer;
+    if (s.customer) avatar.src = s.customer.image;
+    avatar.alt = s.customer?.label || 'おきゃくさん';
+    avatar.setAttribute('aria-label', avatar.alt);
+    $('blue-customer-name').textContent = avatar.alt;
     const nodes = [];
     s.order.forEach((id, index) => {
       const item = byItem.get(id);
@@ -30,28 +44,43 @@
         plus.textContent = '＋'; plus.setAttribute('aria-hidden', 'true'); nodes.push(plus);
       }
       const node = document.createElement('span');
-      node.className = 'blue-order-item' + (index < s.selected.length ? ' done' : '');
-      node.textContent = item.emoji;
+      node.className = 'blue-order-item' + (index < s.selected.length ? ' done' : index === s.selected.length ? ' current' : '');
+      node.textContent = item.label;
       node.setAttribute('aria-label', item.label + (index < s.selected.length ? ' 完了' : ''));
       nodes.push(node);
     });
     $('blue-order').replaceChildren(...nodes);
-    const names = s.order.map(id => byItem.get(id).label);
-    $('blue-order-hint').textContent = names.length ?
-      s.customer.label + '「' + names.join('と') + 'ください！」' : 'おきゃくさんをまっているよ';
+    $('blue-order-hint').textContent = s.order.length ?
+      (s.selected.length === s.order.length ? 'ありがとう！' : 'ください！') : 'なにをつくろうかな？';
     const itemId = game.currentItem();
     const current = itemId && byItem.get(itemId);
     const recipe = itemId && model.RECIPES[itemId];
-    const finished = recipe ? recipe.slice(0, s.stage).map(id => byAction.get(id).emoji).join(' ') : '';
     $('blue-prep-status').textContent = current ?
-      current.emoji + '  ' + (finished || 'これからつくるよ') : 'できあがり！ ✨';
+      current.emoji + ' ' + current.label + ' をつくろう' : s.customer ? 'はい、どうぞ！ ✨' : '🍳 ちょうりだい';
     $('blue-prep-instruction').textContent = current ?
-      'つぎの どうぐや ざいりょうをえらぼう（' + (s.stage + 1) + ' / ' + recipe.length + '）' :
-      'おきゃくさんに わたせたよ！';
+      (game.expectedAction() === 'serve' ? 'できあがり！おわたししよう ✨' :
+        'つぎの材料をえらぼう　' + (s.stage + 1) + ' / ' + recipe.length) :
+      s.customer ? 'おきゃくさんに わたせたよ！' : 'つぎに使うものをえらぼう';
+    const work = $('blue-work-image'), image = itemId && model.workImage(itemId, s.stage);
+    work.hidden = !image;
+    if (image) {
+      work.src = image;
+      work.alt = current.label + '：' + byAction.get(recipe[s.stage - 1]).label + 'までできたよ';
+    }
+    $('blue-progress').setAttribute('aria-label', current ? s.stage + ' / ' + recipe.length + ' 工程完了' : '調理前');
+    $('blue-progress').replaceChildren(...(recipe || []).map((action, index) => {
+      const dot = document.createElement('span');
+      dot.textContent = index < s.stage ? '●' : '○';
+      dot.className = index < s.stage ? 'done' : '';
+      dot.setAttribute('aria-hidden', 'true');
+      dot.title = byAction.get(action).label;
+      return dot;
+    }));
     buttons.forEach((button, index) => {
       const id = s.choices[index], a = byAction.get(id);
       button.dataset.blueItem = id || '';
-      button.querySelector('.blue-food-icon').textContent = a?.emoji || '✨';
+      const icon = button.querySelector('.blue-food-icon');
+      if (a) icon.src = id === 'serve' ? model.imageFor(itemId, 'finish') : a.image;
       button.querySelector('.blue-action-label').textContent = a?.label || 'じゅんびちゅう';
       button.setAttribute('aria-label', a?.label || 'じゅんびちゅう');
     });
@@ -59,13 +88,12 @@
   function configureDay() {
     const day = game.state.day, rule = model.RULES[day];
     root.dataset.gameDay = String(day);
-    root.querySelector('.blue-demo-badge').textContent = '🔵 ' + day + '日目のおためし';
-    $('blue-start-heading').textContent = day === 2 ? 'おみせやさんは大いそがし！' : 'ちゅうもんをつくろう！';
+    root.querySelector('.blue-demo-badge').textContent = '🔵 ' + day + '日目';
+    $('blue-start-heading').textContent = day === 2 ? 'おみせやさんは大いそがし！' : 'おみせやさんに なろう！';
     $('blue-start-description').textContent = day === 2 ?
       'おきゃくさんの2つの品物を、材料から順番につくって渡そう！' :
       '注文された品物を、材料からつくって、おきゃくさんに渡そう！';
     $('blue-start-rules').textContent = rule.duration + 'びょう・ライフ3つ・' + rule.goal + 'くみのおきゃくさん';
-    $('blue-game-note').textContent = day + '日目のおためし。デザインとイラストはあとで決めるよ。';
   }
   function sync({ focus = false } = {}) {
     const s = game.state, rule = model.RULES[s.day], playing = s.status === 'playing';
@@ -83,8 +111,6 @@
     renderRecipe();
     buttons.forEach(button => {
       button.disabled = !playing || s.interlude > 0 || !button.dataset.blueItem;
-      button.classList.remove('blue-selected');
-      button.setAttribute('aria-pressed', 'false');
     });
     $('blue-feedback').textContent = s.feedbackTime > 0 && playing ? s.feedback : '';
     $('blue-feedback').dataset.kind = s.feedbackKind;
@@ -97,7 +123,7 @@
       $('blue-result-text').textContent = s.lives <= 0 ?
         'おしい！ つぎは じゅんばんをよく見てね！' :
         'じかんぎれ！ ' + s.completed + 'くみできたよ。またあそぼう！';
-      $('blue-result-ornament').textContent = '🍧 🍎 🍌';
+      $('blue-result-ornament').textContent = '🍧 🎪 💙';
     }
     if (focus && s.status === 'paused') $('blue-resume').focus({ preventScroll: true });
     if (focus && ['won', 'lost'].includes(s.status)) {
@@ -108,7 +134,7 @@
   function loop(now) {
     frameId = 0;
     if (!entered || document.hidden || game.state.status !== 'playing') return;
-    const elapsed = lastFrame ? Math.max(0, Math.min(.1, (now - lastFrame) / 1000)) : 0;
+    const elapsed = lastFrame ? Math.max(0, (now - lastFrame) / 1000) : 0;
     lastFrame = now;
     game.step(elapsed); sync();
     if (game.state.status === 'playing') frameId = requestAnimationFrame(loop);
@@ -128,12 +154,20 @@
   }
   function choose(button) {
     if (!entered || document.hidden || button.disabled) return;
+    const stage = game.state.stage, selected = game.state.selected.length;
     game.chooseItem(button.dataset.blueItem);
     sync({ focus: true });
+    if (stage !== game.state.stage || selected !== game.state.selected.length) {
+      const work = $('blue-work-image');
+      work.classList.remove('pop');
+      void work.offsetWidth;
+      work.classList.add('pop');
+    }
   }
   buttons.forEach(button => button.addEventListener('click', () => choose(button)));
   $('blue-start').addEventListener('click', start);
   $('blue-retry').addEventListener('click', start);
+  $('blue-restart').addEventListener('click', start);
   $('blue-pause').addEventListener('click', pause);
   $('blue-resume').addEventListener('click', () => {
     if (!entered || document.hidden || game.state.status !== 'paused') return;
@@ -152,7 +186,7 @@
   window.addEventListener('blur', () => { if (entered) pause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && entered) pause(); });
   window.HikariBlueGame = Object.freeze({
-    enter(day) { game.setDay(day); configureDay(); entered = true; visualKey = ''; sync(); },
+    enter(day) { game.setDay(day); configureDay(); entered = true; preloadAssets(); visualKey = ''; sync(); },
     leave() { entered = false; pause(); stopFrame(); }
   });
   configureDay(); sync();
