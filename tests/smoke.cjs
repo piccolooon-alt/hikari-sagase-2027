@@ -287,10 +287,13 @@ async function blueRoundFlow(browser, base) {
         await snapshot(page,viewport.width+'-blue-day'+day+'-ready');
         await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));
         await page.locator('#blue-start').tap();
+        await page.waitForFunction(() => document.querySelector('#suzuran-bgm').currentSrc.endsWith('/tokyo_summer_loop.mp3'));
         let lastCustomer=null;
         for(let round=0;round<RULES[day].goal;round++){
-          const customer=await page.locator('#blue-customer-avatar').getAttribute('alt');
-          assert.ok(CUSTOMERS.some(c=>c.label===customer));
+          const customer=await page.locator('#blue-customer-avatar').getAttribute('src');
+          assert.ok(CUSTOMERS.some(c=>c.image===customer));
+          assert.equal(await page.locator('#blue-customer-avatar').getAttribute('alt'),'おきゃくさん');
+          assert.equal(await page.locator('#blue-customer-name').count(),0);
           seenCustomers.add(customer);
           if(lastCustomer!==null)assert.notEqual(customer,lastCustomer,'customers rotate');
           lastCustomer=customer;
@@ -336,7 +339,7 @@ async function blueRoundFlow(browser, base) {
         }
         assert.equal(await page.locator('#blue-preview').getAttribute('data-game-state'),'won');
         assert.match(await page.locator('#blue-result-title').innerText(),/名人/);
-        assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'),'common');
+        assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'),'blue');
         await snapshot(page,viewport.width+'-blue-day'+day+'-clear');
         check();
       }finally{await context.close();}
@@ -410,7 +413,7 @@ async function blueRoundFlow(browser, base) {
       assert.equal(await status(),'lost');assert.match(await page.locator('#blue-result-text').innerText(),/じかんぎれ/);
       await page.locator('#blue-retry').tap();assert.equal(await status(),'playing');
       await page.clock.resume();
-      assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'),'common');
+      assert.equal(await page.locator('#suzuran-bgm').getAttribute('data-track'),'blue');
       await page.locator('#bgm-toggle').tap();
       assert.equal(await page.locator('#suzuran-bgm').evaluate(el=>el.paused),true);
       await page.locator('#bgm-toggle').tap();
