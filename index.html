@@ -5,7 +5,7 @@
 <meta name="color-scheme" content="dark" />
 <title>光をさがせ！in水袋公園by寺子屋すずらん｜2027 公開確認版</title>
 <link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/app.css?v=20261025-cooking1"></head><body>
+<link rel="stylesheet" href="css/app.css?v=20261026-blueart1"></head><body>
 <noscript>この確認版を遊ぶには JavaScript を有効にしてください。</noscript>
 <main class="app" aria-label="光をさがせ！ 画面確認版">
   <section id="loading" class="screen active" aria-label="起動画面">
@@ -202,62 +202,9 @@
   <audio id="suzuran-bgm" loop preload="none" playsinline src="assets/audio/four_lights_of_suzuran.mp3" aria-label="すずらんの冒険BGM"></audio>
   <button id="bgm-toggle" type="button" aria-label="BGMを再生する" title="BGMを再生する" hidden>♪</button>
 
-<section id="blue-preview" class="screen" aria-label="青の光 おまつりのおみせやさん ゲーム単体のデモ">
-  <div class="blue-stars" aria-hidden="true">✦　✧　✦　✧　✦</div>
-  <div class="blue-game-layout">
-    <div class="blue-game-top"><button id="blue-preview-back" class="qr-back" type="button">‹ もどる</button><span class="blue-demo-badge">🔵 おためしゲーム</span></div>
-    <h1 class="blue-game-title">おまつりのおみせやさん！</h1>
-    <div class="blue-lanterns" aria-hidden="true"><span>🏮</span><span>✨</span><span>🏮</span><span>✨</span><span>🏮</span></div>
-    <div class="blue-game-hud" aria-label="青ゲームの進行">
-      <div><small>のこり</small><strong id="blue-time">45.0</strong><small>びょう</small></div>
-      <div><small>ちゅうもん</small><strong id="blue-score">0 / 6</strong></div>
-      <div><small>ライフ</small><strong id="blue-lives" aria-label="ライフ3つ">♥ ♥ ♥</strong></div>
-    </div>
-    <div class="blue-customer" aria-label="お客さんの注文">
-      <div class="blue-customer-avatar" id="blue-customer-avatar" role="img" aria-label="おきゃくさん">🧒</div>
-      <div class="blue-speech">
-        <span class="blue-customer-caption">おきゃくさんの ちゅうもん</span>
-        <div class="blue-order" id="blue-order" aria-live="polite"></div>
-        <p class="blue-order-hint" id="blue-order-hint">注文をよく見てね！</p>
-      </div>
-    </div>
-    <div class="blue-stall-sign" aria-hidden="true"><span>✧</span> すずらんの えんにちやさん <span>✧</span></div>
-    <div class="blue-prep" role="status" aria-live="polite">
-      <div id="blue-prep-status" class="blue-prep-status">🥣 これからつくるよ</div>
-      <div id="blue-prep-instruction" class="blue-prep-instruction">つぎに使うものをえらぼう</div>
-    </div>
-    <div class="blue-menu" role="group" aria-label="商品を選ぶ">
-      <button type="button" class="blue-food-button blue-food-ice" data-blue-item="ice"><span class="blue-food-icon" aria-hidden="true">🍧</span><span class="blue-action-label">かき氷</span></button>
-      <button type="button" class="blue-food-button blue-food-apple" data-blue-item="apple"><span class="blue-food-icon" aria-hidden="true">🍎</span><span class="blue-action-label">りんご飴</span></button>
-      <button type="button" class="blue-food-button blue-food-banana" data-blue-item="banana"><span class="blue-food-icon" aria-hidden="true">🍌</span><span class="blue-action-label">チョコバナナ</span></button>
-      <button type="button" class="blue-food-button blue-food-candy" data-blue-item="candy"><span class="blue-food-icon" aria-hidden="true">☁️</span><span class="blue-action-label">わたあめ</span></button>
-    </div>
-    <p id="blue-feedback" class="blue-feedback" role="status" aria-live="polite"></p>
-    <div class="blue-game-footer">
-      <button type="button" id="blue-pause" class="blue-pause" disabled>ひとやすみ</button>
-      <p id="blue-game-note">青の光のゲーム単体デモです。おすすめのお店・受付スクリーンとは連動しません。</p>
-    </div>
-  </div>
-  <div id="blue-overlay" class="blue-overlay">
-    <div id="blue-start-panel" class="blue-game-panel">
-      <div class="blue-panel-ornament" aria-hidden="true">🎪 ✨ 🍧</div>
-      <h2 id="blue-start-heading">ちゅうもんをそろえよう！</h2>
-      <p id="blue-start-description">ちゅうもんされた商品をつくって、おきゃくさんに渡そう！</p>
-      <p class="blue-panel-small"><span id="blue-start-rules">45びょう・ライフ3つ・3くみのおきゃくさん</span><br>まちがえたらハートが1つへるよ</p>
-      <button type="button" id="blue-start" class="blue-game-primary">スタート！ ✨</button>
-    </div>
-    <div id="blue-pause-panel" class="blue-game-panel" hidden>
-      <div class="blue-panel-ornament" aria-hidden="true">🌙</div><h2>ひとやすみ</h2><p>じゅんびができたら、つづきから遊ぼう！</p>
-      <button type="button" id="blue-resume" class="blue-game-primary">つづきから遊ぶ</button>
-    </div>
-    <div id="blue-result-panel" class="blue-game-panel" hidden>
-      <div id="blue-result-ornament" class="blue-panel-ornament" aria-hidden="true">✨🎉✨</div>
-      <h2 id="blue-result-title">おつかれさま！</h2>
-      <p id="blue-result-text"></p>
-      <button type="button" id="blue-retry" class="blue-game-primary">もういっかい！</button>
-      <p class="blue-panel-small">これは青のゲームだけのおためし版だよ。</p>
-    </div>
-  </div>
+<section id="blue-preview" class="screen" aria-label="青の光 おまつりのおみせやさん">
+  <iframe id="blue-live-frame" title="青の光 おまつりのおみせやさん（画像付き調理ゲーム）" loading="eager" referrerpolicy="same-origin"></iframe>
+  <button id="blue-preview-back" type="button" hidden tabindex="-1" aria-hidden="true">もどる</button>
 </section>
 
 <section id="red-preview" class="screen" aria-label="赤の水風船ヨーヨーよけ ゲーム単体のデモ">
@@ -315,6 +262,6 @@
 <script src="js/red-game-model.js"></script>
 <script src="js/red-game.js"></script>
 <script src="js/blue-game-model.js?v=20261025-cooking1"></script>
-<script src="js/blue-game.js?v=20261025-cooking1"></script>
+<script src="js/blue-game.js?v=20261026-blueart1"></script>
 <script src="js/app.js?v=20261025-cooking1"></script>
 </body></html>
